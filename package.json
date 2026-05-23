@@ -1,0 +1,16 @@
+{
+  "name": "cyber-bazi-ai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static MVP prototype for an AI Bazi analysis website",
+  "scripts": {
+    "dev": "python -m http.server 4173 --bind 127.0.0.1"
+  },
+  "keywords": [
+    "bazi",
+    "ai",
+    "static-site",
+    "vercel"
+  ],
+  "license": "UNLICENSED"
+}

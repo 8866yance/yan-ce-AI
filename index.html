@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>玄核 Bazi AI | AI 八字命理分析</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero__visual" aria-hidden="true">
+          <div class="orbital">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="pillar-grid">
+            <div>甲子</div><div>乙丑</div><div>丙寅</div><div>丁卯</div>
+            <div>戊辰</div><div>己巳</div><div>庚午</div><div>辛未</div>
+            <div>壬申</div><div>癸酉</div><div>甲戌</div><div>乙亥</div>
+          </div>
+        </div>
+
+        <div class="hero__copy">
+          <p class="eyebrow">Cyber Bazi Intelligence</p>
+          <h1 id="page-title">玄核 Bazi AI</h1>
+          <p class="lede">根据出生日期、时间和中国境内出生地生成专业细盘，再由 AI 做结构化解读。</p>
+          <div class="hero__actions">
+            <a class="button button--primary" href="#analyzer">开始排盘</a>
+            <a class="button button--ghost" href="#birthplace">查看规则</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="insight-strip" id="birthplace" aria-label="出生地影响">
+        <article>
+          <strong>出生地会影响什么？</strong>
+          <p>出生地会影响时区、真太阳时校正、节气临界点判断，尤其是接近子时和节气交接日的出生信息。</p>
+        </article>
+        <article>
+          <strong>中国境内三级选择</strong>
+          <p>用户先选择省份，再选择城市，最后选择区县或镇。默认北京，后续可接完整行政区划和经纬度数据。</p>
+        </article>
+        <article>
+          <strong>专业细盘结构</strong>
+          <p>排盘包含主星、天干、地支、藏干、星运、自坐、空亡、纳音、神煞、大运、流年和流月。</p>
+        </article>
+      </section>
+
+      <section class="workspace" id="analyzer">
+        <form class="panel form-panel" id="bazi-form">
+          <div class="panel__header">
+            <p class="eyebrow">Input Console</p>
+            <h2>生成你的八字排盘</h2>
+          </div>
+
+          <label>
+            <span>性别</span>
+            <select id="gender" required>
+              <option value="男" selected>男</option>
+              <option value="女">女</option>
+            </select>
+          </label>
+
+          <label>
+            <span>出生历法</span>
+            <select id="calendar-type" required>
+              <option value="公历" selected>公历</option>
+              <option value="农历">农历</option>
+            </select>
+          </label>
+
+          <label>
+            <span id="birth-date-label">公历出生日期</span>
+            <input id="birth-date" type="date" required value="1996-08-18" />
+          </label>
+
+          <label>
+            <span>出生时间</span>
+            <input id="birth-time" type="time" value="23:30" />
+          </label>
+
+          <label>
+            <span>出生省份</span>
+            <select id="birth-province" required></select>
+          </label>
+
+          <label>
+            <span>出生城市</span>
+            <select id="birth-city" required></select>
+          </label>
+
+          <label>
+            <span>出生区/县/镇</span>
+            <select id="birth-area" required></select>
+          </label>
+
+          <label>
+            <span>出生地校正</span>
+            <select id="birth-place-mode" required>
+              <option value="北京" selected>北京，默认基准</option>
+              <option value="按出生地">按选择的省市区/镇校正</option>
+            </select>
+          </label>
+
+          <label class="toggle">
+            <input id="solar-time" type="checkbox" checked />
+            <span>启用出生地真太阳时提示</span>
+          </label>
+
+          <button class="button button--primary" type="submit">生成详细排盘</button>
+        </form>
+
+        <aside class="panel report-panel" aria-live="polite">
+          <div class="panel__header">
+            <p class="eyebrow">Professional Chart Preview</p>
+            <h2 id="report-title">专业细盘</h2>
+          </div>
+
+          <div class="meta-grid">
+            <div><span>日期</span><strong id="meta-date">公历 1996-08-18 23:30</strong></div>
+            <div><span>出生地</span><strong id="meta-place">北京市 北京市 东城区</strong></div>
+            <div><span>起运</span><strong id="meta-start-luck">出生后 8 年 2 月 3 天起运</strong></div>
+            <div><span>当前</span><strong id="meta-current">38 岁 · 司令：癸</strong></div>
+          </div>
+
+          <div class="chart-card">
+            <div><span>年柱</span><strong id="year-pillar">丙子</strong></div>
+            <div><span>月柱</span><strong id="month-pillar">丙申</strong></div>
+            <div><span>日柱</span><strong id="day-pillar">丁亥</strong></div>
+            <div><span>时柱</span><strong id="hour-pillar">庚子</strong></div>
+          </div>
+
+          <div class="pro-chart" aria-label="专业细盘">
+            <div class="pro-chart__row pro-chart__head">
+              <span>日期</span><span>流年</span><span>大运</span><span>年柱</span><span>月柱</span><span>日柱</span><span>时柱</span>
+            </div>
+            <div class="pro-chart__row">
+              <span>主星</span><strong id="star-flow">比肩</strong><strong id="star-luck">正官</strong><strong id="star-year">伤官</strong><strong id="star-month">比肩</strong><strong id="star-day">元男</strong><strong id="star-hour">食神</strong>
+            </div>
+            <div class="pro-chart__row pro-chart__big">
+              <span>天干</span><strong id="stem-flow">丙</strong><strong id="stem-luck">癸</strong><strong id="stem-year">己</strong><strong id="stem-month">丙</strong><strong id="stem-day">丙</strong><strong id="stem-hour">戊</strong>
+            </div>
+            <div class="pro-chart__row pro-chart__big">
+              <span>地支</span><strong id="branch-flow">午</strong><strong id="branch-luck">酉</strong><strong id="branch-year">巳</strong><strong id="branch-month">子</strong><strong id="branch-day">寅</strong><strong id="branch-hour">子</strong>
+            </div>
+            <div class="pro-chart__row pro-chart__stack">
+              <span>藏干</span>
+              <strong id="hidden-flow">丁劫财<br>己伤官</strong>
+              <strong id="hidden-luck">辛正财</strong>
+              <strong id="hidden-year">丙比肩<br>庚偏财<br>戊食神</strong>
+              <strong id="hidden-month">癸正官</strong>
+              <strong id="hidden-day">甲偏印<br>丙比肩<br>戊食神</strong>
+              <strong id="hidden-hour">癸正官</strong>
+            </div>
+            <div class="pro-chart__row">
+              <span>星运</span><strong id="stage-flow">帝旺</strong><strong id="stage-luck">死</strong><strong id="stage-year">临官</strong><strong id="stage-month">胎</strong><strong id="stage-day">长生</strong><strong id="stage-hour">胎</strong>
+            </div>
+            <div class="pro-chart__row">
+              <span>自坐</span><strong id="self-flow">帝旺</strong><strong id="self-luck">病</strong><strong id="self-year">帝旺</strong><strong id="self-month">胎</strong><strong id="self-day">长生</strong><strong id="self-hour">胎</strong>
+            </div>
+            <div class="pro-chart__row">
+              <span>空亡</span><strong id="void-flow">寅卯</strong><strong id="void-luck">戌亥</strong><strong id="void-year">戌亥</strong><strong id="void-month">申酉</strong><strong id="void-day">戌亥</strong><strong id="void-hour">午未</strong>
+            </div>
+            <div class="pro-chart__row">
+              <span>纳音</span><strong id="nayin-flow">天河水</strong><strong id="nayin-luck">剑锋金</strong><strong id="nayin-year">大林木</strong><strong id="nayin-month">涧下水</strong><strong id="nayin-day">炉中火</strong><strong id="nayin-hour">霹雳火</strong>
+            </div>
+            <div class="pro-chart__row pro-chart__sha">
+              <span>神煞</span><strong id="sha-flow">德秀贵人</strong><strong id="sha-luck">文昌贵人</strong><strong id="sha-year">天厨贵人</strong><strong id="sha-month">天乙贵人</strong><strong id="sha-day">国印贵人</strong><strong id="sha-hour">天乙贵人</strong>
+            </div>
+          </div>
+
+          <div class="elements">
+            <div><span>木</span><i id="wood-bar" style="--value: 42%"></i></div>
+            <div><span>火</span><i id="fire-bar" style="--value: 58%"></i></div>
+            <div><span>土</span><i id="earth-bar" style="--value: 31%"></i></div>
+            <div><span>金</span><i id="metal-bar" style="--value: 47%"></i></div>
+            <div><span>水</span><i id="water-bar" style="--value: 66%"></i></div>
+          </div>
+
+          <section class="cycle-section" aria-label="大运流年流月">
+            <div class="cycle-block">
+              <div class="cycle-label">大运</div>
+              <div class="cycle-track" id="luck-track"></div>
+            </div>
+            <div class="cycle-block">
+              <div class="cycle-label">流年</div>
+              <div class="cycle-track" id="year-track"></div>
+            </div>
+            <div class="cycle-block">
+              <div class="cycle-label">流月</div>
+              <div class="cycle-track" id="month-track"></div>
+            </div>
+          </section>
+
+          <div class="analysis-grid">
+            <article>
+              <span>干支生克</span>
+              <strong id="relation-title">水火既济，金水相生</strong>
+              <p id="relation-copy">观察天干地支之间的生、合、冲、克、刑、害，判断命局能量如何流动。</p>
+            </article>
+            <article>
+              <span>十神关系</span>
+              <strong id="ten-gods">正官 · 偏财 · 食神</strong>
+              <p>围绕日主看资源、表达、财富、规则与压力来源，形成性格和行动模式解释。</p>
+            </article>
+            <article>
+              <span>神煞参考</span>
+              <strong id="shen-sha">文昌 · 天乙 · 桃花</strong>
+              <p>作为辅助标签展示，不单独下结论，用于补充学习力、人缘与贵人线索。</p>
+            </article>
+            <article>
+              <span>大运流年</span>
+              <strong id="luck-cycle">当前大运：乙未</strong>
+              <p id="luck-copy">结合十年大运与当年流年，给出阶段主题、机会窗口和需要稳住的地方。</p>
+            </article>
+          </div>
+
+          <div class="report-copy">
+            <h3 id="summary-heading">排盘总览</h3>
+            <p id="summary">系统已根据出生信息生成专业细盘，后续 AI 会基于结构化排盘输出更详细的命理解读。</p>
+            <p id="place-note">出生地：北京市 北京市 东城区。系统会记录城市与时区，临界时辰建议使用经纬度进行真太阳时校正。</p>
+          </div>
+
+          <div class="consult-box">
+            <label>
+              <span>看完排盘后，你想咨询什么方向？</span>
+              <textarea id="consult-direction" rows="4" placeholder="例如：未来一年事业怎么走？适合创业吗？感情关系需要注意什么？"></textarea>
+            </label>
+            <button class="button button--ghost" id="consult-button" type="button">生成咨询方向解读</button>
+            <p id="consult-result">你可以在这里输入具体问题，AI 会基于上面的排盘结果继续分析。</p>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
