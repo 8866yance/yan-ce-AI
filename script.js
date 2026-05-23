@@ -36,28 +36,27 @@ const solarTerms = [
 ];
 const solarTermInfo = [0, 21208, 42467, 63836, 85337, 107014, 128867, 150921, 173149, 195551, 218072, 240693, 263343, 285989, 308563, 331033, 353350, 375494, 397447, 419210, 440795, 462224, 483532, 504758];
 
-const chinaPlaces = {
-  北京市: { 北京市: ["东城区", "西城区", "朝阳区", "海淀区", "丰台区", "通州区", "昌平区", "大兴区"] },
-  上海市: { 上海市: ["黄浦区", "徐汇区", "静安区", "浦东新区", "闵行区", "宝山区", "松江区", "青浦区"] },
-  广东省: {
-    广州市: ["越秀区", "天河区", "海珠区", "番禺区", "白云区", "黄埔区"],
-    深圳市: ["福田区", "南山区", "罗湖区", "宝安区", "龙岗区", "龙华区"],
-    佛山市: ["禅城区", "南海区", "顺德区", "三水区", "高明区"]
-  },
-  四川省: {
-    成都市: ["锦江区", "青羊区", "武侯区", "成华区", "双流区", "郫都区", "都江堰市"],
-    绵阳市: ["涪城区", "游仙区", "安州区", "江油市", "三台县"],
-    南充市: ["顺庆区", "高坪区", "嘉陵区", "阆中市", "南部县"]
-  },
-  浙江省: {
-    杭州市: ["上城区", "拱墅区", "西湖区", "滨江区", "萧山区", "余杭区"],
-    宁波市: ["海曙区", "江北区", "北仑区", "鄞州区", "慈溪市", "余姚市"]
-  },
-  江苏省: {
-    南京市: ["玄武区", "秦淮区", "建邺区", "鼓楼区", "江宁区", "浦口区"],
-    苏州市: ["姑苏区", "虎丘区", "吴中区", "相城区", "昆山市", "张家港市"]
+let chinaPlaces = [];
+
+const fallbackPlaces = [
+  {
+    code: "11",
+    name: "北京市",
+    children: [
+      {
+        code: "1101",
+        name: "市辖区",
+        children: [
+          {
+            code: "110101",
+            name: "东城区",
+            children: [{ code: "110101001", name: "东华门街道" }]
+          }
+        ]
+      }
+    ]
   }
-};
+];
 
 function mod(value, length) {
   return ((value % length) + length) % length;
@@ -188,21 +187,42 @@ function hiddenWithGods(branch, dayStem) {
   return (hiddenStems[branch] || []).map((stem) => `${stem}${tenGod(dayStem, stem)}`).join("<br>");
 }
 
-function fillSelect(select, values, formatter = (value) => value) {
-  select.innerHTML = values.map((value) => `<option value="${value}">${formatter(value)}</option>`).join("");
+function fillSelect(select, values, formatter = (value) => value.name || value) {
+  select.innerHTML = values.map((value, index) => `<option value="${index}">${formatter(value)}</option>`).join("");
+}
+
+function selectedText(selector) {
+  const select = document.querySelector(selector);
+  return select?.selectedOptions?.[0]?.textContent?.replace("，默认省份", "").replace("，默认城市", "") || "";
+}
+
+function selectedNode(selector, list) {
+  const index = Number(document.querySelector(selector).value || 0);
+  return list[index] || list[0] || { name: "", children: [] };
+}
+
+async function loadChinaAreas() {
+  try {
+    const response = await fetch("china-areas.json", { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    chinaPlaces = await response.json();
+  } catch (error) {
+    console.warn("中国行政区划数据加载失败，使用北京默认数据。", error);
+    chinaPlaces = fallbackPlaces;
+  }
 }
 
 function updateCities() {
-  const province = document.querySelector("#birth-province").value;
-  const cities = Object.keys(chinaPlaces[province] || {});
-  fillSelect(document.querySelector("#birth-city"), cities, (city) => city === "北京市" ? "北京市，默认城市" : city);
+  const province = selectedNode("#birth-province", chinaPlaces);
+  const cities = province.children || [];
+  fillSelect(document.querySelector("#birth-city"), cities, (city) => city.name === "市辖区" ? "北京市，默认城市" : city.name);
   updateAreas();
 }
 
 function updateAreas() {
-  const province = document.querySelector("#birth-province").value;
-  const city = document.querySelector("#birth-city").value;
-  fillSelect(document.querySelector("#birth-area"), chinaPlaces[province]?.[city] || []);
+  const province = selectedNode("#birth-province", chinaPlaces);
+  const city = selectedNode("#birth-city", province.children || []);
+  fillSelect(document.querySelector("#birth-area"), city.children || []);
 }
 
 function calculateChart(date) {
@@ -310,9 +330,9 @@ function updateReport(event) {
   const dateValue = document.querySelector("#birth-date").value;
   const timeValue = document.querySelector("#birth-time").value || "00:00";
   const calendarType = document.querySelector("#calendar-type").value;
-  const province = document.querySelector("#birth-province").value || "北京市";
-  const city = document.querySelector("#birth-city").value || "北京市";
-  const area = document.querySelector("#birth-area").value || "东城区";
+  const province = selectedText("#birth-province") || "北京市";
+  const city = selectedText("#birth-city") || "北京市";
+  const area = selectedText("#birth-area") || "东城区";
   const placeMode = document.querySelector("#birth-place-mode").value;
   const solarTime = document.querySelector("#solar-time").checked;
   const gender = document.querySelector("#gender").value;
@@ -361,7 +381,6 @@ document.querySelector("#consult-button").addEventListener("click", () => {
     : "请先输入你想咨询的具体方向，例如事业、财运、感情、流年或某个具体问题。";
 });
 
-fillSelect(document.querySelector("#birth-province"), Object.keys(chinaPlaces), (province) => province === "北京市" ? "北京市，默认省份" : province);
 document.querySelector("#birth-province").addEventListener("change", () => {
   updateCities();
   updateReport();
@@ -370,9 +389,19 @@ document.querySelector("#birth-city").addEventListener("change", () => {
   updateAreas();
   updateReport();
 });
-updateCities();
+document.querySelector("#birth-area").addEventListener("change", () => {
+  updateReport();
+});
 document.querySelector("#bazi-form").addEventListener("submit", updateReport);
-["#gender", "#calendar-type", "#birth-date", "#birth-time", "#birth-area", "#birth-place-mode", "#solar-time"].forEach((selector) => {
+["#gender", "#calendar-type", "#birth-date", "#birth-time", "#birth-place-mode", "#solar-time"].forEach((selector) => {
   document.querySelector(selector).addEventListener("change", updateReport);
 });
-updateReport();
+
+async function bootstrap() {
+  await loadChinaAreas();
+  fillSelect(document.querySelector("#birth-province"), chinaPlaces, (province) => province.name === "北京市" ? "北京市，默认省份" : province.name);
+  updateCities();
+  updateReport();
+}
+
+bootstrap();

@@ -37,8 +37,8 @@
           <p>出生地会影响时区、真太阳时校正、节气临界点判断，尤其是接近子时和节气交接日的出生信息。</p>
         </article>
         <article>
-          <strong>中国境内三级选择</strong>
-          <p>用户先选择省份，再选择城市，最后选择区县或镇。默认北京，后续可接完整行政区划和经纬度数据。</p>
+            <strong>中国境内三级选择</strong>
+            <p>用户先选择省份，再选择城市，最后选择区县或镇。默认北京，便于后续接入经纬度真太阳时校正。</p>
         </article>
         <article>
           <strong>专业细盘结构</strong>
@@ -90,15 +90,15 @@
           </label>
 
           <label>
-            <span>出生区/县/镇</span>
-            <select id="birth-area" required></select>
-          </label>
+              <span>出生区/县/镇</span>
+              <select id="birth-area" required></select>
+            </label>
 
           <label>
             <span>出生地校正</span>
             <select id="birth-place-mode" required>
               <option value="北京" selected>北京，默认基准</option>
-              <option value="按出生地">按选择的省市区/镇校正</option>
+                <option value="按出生地">按选择的省市区县/镇校正</option>
             </select>
           </label>
 
@@ -233,6 +233,6 @@
       </section>
     </main>
 
-    <script src="script.js?v=20260524-traditional-bazi"></script>
+    <script src="script.js?v=20260524-china-address"></script>
   </body>
 </html>
