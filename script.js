@@ -202,14 +202,26 @@ function selectedNode(selector, list) {
 }
 
 async function loadChinaAreas() {
-  try {
-    const response = await fetch("china-areas.json", { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    chinaPlaces = await response.json();
-  } catch (error) {
-    console.warn("中国行政区划数据加载失败，使用北京默认数据。", error);
-    chinaPlaces = fallbackPlaces;
+  const sources = [
+    "china-pca.json",
+    "https://cdn.jsdelivr.net/gh/modood/Administrative-divisions-of-China@master/dist/pca-code.json"
+  ];
+
+  for (const source of sources) {
+    try {
+      const response = await fetch(source, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      if (Array.isArray(data) && data.length > 20) {
+        chinaPlaces = data;
+        return;
+      }
+    } catch (error) {
+      console.warn(`中国行政区划数据加载失败：${source}`, error);
+    }
   }
+
+  chinaPlaces = fallbackPlaces;
 }
 
 function updateCities() {
