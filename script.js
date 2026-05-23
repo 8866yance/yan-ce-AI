@@ -21,19 +21,20 @@ const voids = ["戌亥", "申酉", "午未", "辰巳", "寅卯", "子丑"];
 const nayins = ["海中金", "炉中火", "大林木", "路旁土", "剑锋金", "山头火", "涧下水", "城头土", "白蜡金", "杨柳木", "泉中水", "屋上土", "霹雳火", "松柏木", "长流水", "沙中金", "山下火", "平地木"];
 const shaList = ["天乙贵人", "文昌贵人", "国印贵人", "太极贵人", "德秀贵人", "驿马", "华盖", "桃花", "将星", "禄神", "红鸾", "天厨贵人"];
 const solarTerms = [
-  { name: "小寒", month: 1, day: 5, branch: "丑" },
-  { name: "立春", month: 2, day: 4, branch: "寅" },
-  { name: "惊蛰", month: 3, day: 6, branch: "卯" },
-  { name: "清明", month: 4, day: 5, branch: "辰" },
-  { name: "立夏", month: 5, day: 6, branch: "巳" },
-  { name: "芒种", month: 6, day: 6, branch: "午" },
-  { name: "小暑", month: 7, day: 7, branch: "未" },
-  { name: "立秋", month: 8, day: 8, branch: "申" },
-  { name: "白露", month: 9, day: 8, branch: "酉" },
-  { name: "寒露", month: 10, day: 8, branch: "戌" },
-  { name: "立冬", month: 11, day: 7, branch: "亥" },
-  { name: "大雪", month: 12, day: 7, branch: "子" }
+  { name: "小寒", index: 0, branch: "丑" },
+  { name: "立春", index: 2, branch: "寅" },
+  { name: "惊蛰", index: 4, branch: "卯" },
+  { name: "清明", index: 6, branch: "辰" },
+  { name: "立夏", index: 8, branch: "巳" },
+  { name: "芒种", index: 10, branch: "午" },
+  { name: "小暑", index: 12, branch: "未" },
+  { name: "立秋", index: 14, branch: "申" },
+  { name: "白露", index: 16, branch: "酉" },
+  { name: "寒露", index: 18, branch: "戌" },
+  { name: "立冬", index: 20, branch: "亥" },
+  { name: "大雪", index: 22, branch: "子" }
 ];
+const solarTermInfo = [0, 21208, 42467, 63836, 85337, 107014, 128867, 150921, 173149, 195551, 218072, 240693, 263343, 285989, 308563, 331033, 353350, 375494, 397447, 419210, 440795, 462224, 483532, 504758];
 
 const chinaPlaces = {
   北京市: { 北京市: ["东城区", "西城区", "朝阳区", "海淀区", "丰台区", "通州区", "昌平区", "大兴区"] },
@@ -75,6 +76,12 @@ function getBirthDate(dateValue, timeValue) {
   return new Date(`${dateValue || "1996-08-18"}T${hour.padStart(2, "0")}:${minute.padStart(2, "0")}:00`);
 }
 
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
 function calculateAge(birthDate, today = new Date()) {
   let age = today.getFullYear() - birthDate.getFullYear();
   const hadBirthday = today.getMonth() > birthDate.getMonth() || (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
@@ -88,8 +95,13 @@ function julianDayNumber(year, month, day) {
   return day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
 }
 
+function getSolarTermDate(year, index) {
+  const ms = 31556925974.7 * (year - 1900) + solarTermInfo[index] * 60000 + Date.UTC(1900, 0, 6, 2, 5);
+  return new Date(ms);
+}
+
 function getYearForBazi(date) {
-  const lichun = new Date(`${date.getFullYear()}-02-04T00:00:00`);
+  const lichun = getSolarTermDate(date.getFullYear(), 2);
   return date < lichun ? date.getFullYear() - 1 : date.getFullYear();
 }
 
@@ -100,11 +112,29 @@ function getYearPillar(date) {
 function getMonthTerm(date) {
   let current = solarTerms[0];
   for (const term of solarTerms) {
-    const boundary = new Date(date.getFullYear(), term.month - 1, term.day);
+    const boundary = getSolarTermDate(date.getFullYear(), term.index);
     if (date >= boundary) current = term;
   }
-  if (date < new Date(date.getFullYear(), 0, 5)) current = solarTerms[11];
+  if (date < getSolarTermDate(date.getFullYear(), 0)) current = solarTerms[11];
   return current;
+}
+
+function getMonthBoundaries(date) {
+  const year = date.getFullYear();
+  const boundaries = [
+    ...solarTerms.map((term) => ({ ...term, date: getSolarTermDate(year, term.index) })),
+    { ...solarTerms[0], date: getSolarTermDate(year + 1, 0) }
+  ];
+  let previous = { ...solarTerms[11], date: getSolarTermDate(year - 1, 22) };
+  let next = boundaries[0];
+  for (const boundary of boundaries) {
+    if (date >= boundary.date) previous = boundary;
+    if (date < boundary.date) {
+      next = boundary;
+      break;
+    }
+  }
+  return { previous, next };
 }
 
 function getMonthPillar(date, yearStem) {
@@ -117,7 +147,8 @@ function getMonthPillar(date, yearStem) {
 }
 
 function getDayPillar(date) {
-  const jdn = julianDayNumber(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  const dayDate = date.getHours() >= 23 ? addDays(date, 1) : date;
+  const jdn = julianDayNumber(dayDate.getFullYear(), dayDate.getMonth() + 1, dayDate.getDate());
   const jiaZiJdn = julianDayNumber(2000, 1, 7);
   return gz(jdn - jiaZiJdn);
 }
@@ -183,6 +214,30 @@ function calculateChart(date) {
   return [yearPillar, monthPillar, dayPillar, hourPillar];
 }
 
+function isYangStem(stem) {
+  return stems.indexOf(stem) % 2 === 0;
+}
+
+function getLuckDirection(gender, yearStem) {
+  const yangYear = isYangStem(yearStem);
+  return (gender === "男" && yangYear) || (gender === "女" && !yangYear) ? 1 : -1;
+}
+
+function getLuckStart(date, direction) {
+  const { previous, next } = getMonthBoundaries(date);
+  const target = direction === 1 ? next.date : previous.date;
+  const diffMs = Math.abs(target.getTime() - date.getTime());
+  const diffDays = diffMs / 86400000;
+  const totalMonths = Math.max(1, Math.round(diffDays * 4));
+  return {
+    years: Math.floor(totalMonths / 12),
+    months: totalMonths % 12,
+    days: Math.round((diffDays * 4 - totalMonths) * 30),
+    startAge: Math.max(1, Math.round(totalMonths / 12)),
+    targetTerm: target === next.date ? next.name : previous.name
+  };
+}
+
 function countElements(pillars) {
   const score = { 木: 0, 火: 0, 土: 0, 金: 0, 水: 0 };
   pillars.forEach((pillarValue) => {
@@ -216,11 +271,12 @@ function updateProfessionalRows(pillars, currentYear, dayStem, startLuckAge) {
   });
 }
 
-function renderCycles(birthYear, currentAge, currentYear, startLuckAge, dayStem) {
+function renderCycles(birthYear, currentAge, currentYear, luckInfo, dayStem, monthPillar, direction) {
   document.querySelector("#luck-track").innerHTML = Array.from({ length: 9 }, (_, index) => {
-    const age = startLuckAge + index * 10;
+    const age = luckInfo.startAge + index * 10;
     const year = birthYear + age;
-    const p = gz(year - 4);
+    const monthIndex = stems.indexOf(monthPillar.slice(0, 1)) + branches.indexOf(monthPillar.slice(1));
+    const p = gz(monthIndex + direction * (index + 1));
     const active = currentAge >= age && currentAge < age + 10 ? " is-active" : "";
     return `<div class="cycle-card${active}"><span>${year}<br>${age}-${age + 9}岁</span><strong>${p}</strong><em>${tenGod(dayStem, p.slice(0, 1))}</em></div>`;
   }).join("");
@@ -259,13 +315,15 @@ function updateReport(event) {
   const area = document.querySelector("#birth-area").value || "东城区";
   const placeMode = document.querySelector("#birth-place-mode").value;
   const solarTime = document.querySelector("#solar-time").checked;
+  const gender = document.querySelector("#gender").value;
   const birthDate = getBirthDate(dateValue, timeValue);
   const today = new Date();
   const currentAge = calculateAge(birthDate, today);
   const currentYear = today.getFullYear();
   const pillars = calculateChart(birthDate);
   const dayStem = pillars[2].slice(0, 1);
-  const startLuckAge = (stems.indexOf(pillars[0].slice(0, 1)) % 6) + 3;
+  const luckDirection = getLuckDirection(gender, pillars[0].slice(0, 1));
+  const luckInfo = getLuckStart(birthDate, luckDirection);
 
   document.querySelector("#year-pillar").textContent = pillars[0];
   document.querySelector("#month-pillar").textContent = pillars[1];
@@ -274,11 +332,11 @@ function updateReport(event) {
   document.querySelector("#report-title").textContent = `${city}专业细盘`;
   document.querySelector("#meta-date").textContent = `${calendarType} ${dateValue} ${timeValue}`;
   document.querySelector("#meta-place").textContent = `${province} ${city} ${area}`;
-  document.querySelector("#meta-start-luck").textContent = `出生后约 ${startLuckAge} 年起运`;
+  document.querySelector("#meta-start-luck").textContent = `出生后约 ${luckInfo.years} 年 ${luckInfo.months} 月起运，${luckDirection === 1 ? "顺行" : "逆行"}，以${luckInfo.targetTerm}折算`;
   document.querySelector("#meta-current").textContent = `${currentAge} 岁 · 当前流年：${gz(currentYear - 4)}`;
 
-  updateProfessionalRows(pillars, currentYear, dayStem, startLuckAge);
-  renderCycles(birthDate.getFullYear(), currentAge, currentYear, startLuckAge, dayStem);
+  updateProfessionalRows(pillars, currentYear, dayStem, luckInfo.startAge);
+  renderCycles(birthDate.getFullYear(), currentAge, currentYear, luckInfo, dayStem, pillars[1], luckDirection);
   setElementBars(countElements(pillars));
 
   document.querySelector("#relation-title").textContent = `${branchElement[pillars[2].slice(1)]}日主，月令${getMonthTerm(birthDate).name}`;
