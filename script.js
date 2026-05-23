@@ -83,6 +83,20 @@ function updateAreas() {
   fillSelect(document.querySelector("#birth-area"), chinaPlaces[province]?.[city] || []);
 }
 
+function getBirthDate(dateValue) {
+  if (!dateValue) return new Date("1996-08-18T00:00:00");
+  return new Date(`${dateValue}T00:00:00`);
+}
+
+function calculateAge(birthDate, today = new Date()) {
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const hasHadBirthday =
+    today.getMonth() > birthDate.getMonth() ||
+    (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+  if (!hasHadBirthday) age -= 1;
+  return Math.max(age, 0);
+}
+
 function updateProfessionalRows(seed, pillars) {
   const keys = ["flow", "luck", "year", "month", "day", "hour"];
   const allPillars = [pillar(seed + 61), pillar(seed + 49), ...pillars];
@@ -101,20 +115,21 @@ function updateProfessionalRows(seed, pillars) {
   });
 }
 
-function renderCycles(seed) {
+function renderCycles(seed, birthYear, currentAge, currentYear, startLuckAge) {
   const luckTrack = document.querySelector("#luck-track");
   const yearTrack = document.querySelector("#year-track");
   const monthTrack = document.querySelector("#month-track");
 
   luckTrack.innerHTML = Array.from({ length: 9 }, (_, index) => {
-    const year = 1998 + index * 10;
-    const active = index === 2 ? " is-active" : "";
-    return `<div class="cycle-card${active}"><span>${year}<br>${index * 10 + 10}岁</span><strong>${pillar(seed + index * 7)}</strong><em>${pick(tenGodList, seed + index)}</em></div>`;
+    const age = startLuckAge + index * 10;
+    const year = birthYear + age;
+    const active = currentAge >= age && currentAge < age + 10 ? " is-active" : "";
+    return `<div class="cycle-card${active}"><span>${year}<br>${age}-${age + 9}岁</span><strong>${pillar(seed + index * 7)}</strong><em>${pick(tenGodList, seed + index)}</em></div>`;
   }).join("");
 
   yearTrack.innerHTML = Array.from({ length: 10 }, (_, index) => {
-    const year = 2018 + index;
-    const active = year === 2026 ? " is-active" : "";
+    const year = currentYear - 4 + index;
+    const active = year === currentYear ? " is-active" : "";
     return `<div class="cycle-card${active}"><span>${year}</span><strong>${pillar(seed + index * 5)}</strong><em>${pick(tenGodList, seed + index + 3)}</em></div>`;
   }).join("");
 
@@ -125,7 +140,7 @@ function renderCycles(seed) {
 }
 
 function updateReport(event) {
-  event.preventDefault();
+  event?.preventDefault?.();
 
   const date = document.querySelector("#birth-date").value;
   const time = document.querySelector("#birth-time").value || "未知";
@@ -135,7 +150,12 @@ function updateReport(event) {
   const area = document.querySelector("#birth-area").value || "东城区";
   const placeMode = document.querySelector("#birth-place-mode").value;
   const solarTime = document.querySelector("#solar-time").checked;
+  const birthDate = getBirthDate(date);
+  const today = new Date();
+  const currentAge = calculateAge(birthDate, today);
+  const currentYear = today.getFullYear();
   const seed = (Number(date.replaceAll("-", "")) || 19960818) + (Number(time.replace(":", "")) || 0) + city.length * 17 + area.length * 11;
+  const startLuckAge = mod(seed, 8) + 2;
 
   const yearPillar = pillar(seed);
   const monthPillar = pillar(seed + 11);
@@ -150,11 +170,11 @@ function updateReport(event) {
   document.querySelector("#report-title").textContent = `${city}专业细盘`;
   document.querySelector("#meta-date").textContent = `${calendarType} ${date} ${time}`;
   document.querySelector("#meta-place").textContent = `${province} ${city} ${area}`;
-  document.querySelector("#meta-start-luck").textContent = `出生后 ${mod(seed, 9) + 1} 年 ${mod(seed, 10) + 1} 月 ${mod(seed, 27) + 1} 天起运`;
-  document.querySelector("#meta-current").textContent = `${mod(seed, 45) + 18} 岁 · 司令：${pick(stems, seed + 8)}`;
+  document.querySelector("#meta-start-luck").textContent = `出生后 ${startLuckAge} 年 ${mod(seed, 10) + 1} 月 ${mod(seed, 27) + 1} 天起运`;
+  document.querySelector("#meta-current").textContent = `${currentAge} 岁 · 司令：${pick(stems, seed + 8)}`;
 
   updateProfessionalRows(seed, pillarValues);
-  renderCycles(seed);
+  renderCycles(seed, birthDate.getFullYear(), currentAge, currentYear, startLuckAge);
 
   document.querySelector("#wood-bar").style.setProperty("--value", `${35 + mod(seed, 42)}%`);
   document.querySelector("#fire-bar").style.setProperty("--value", `${35 + mod(seed + 9, 42)}%`);
@@ -189,4 +209,7 @@ document.querySelector("#birth-province").addEventListener("change", updateCitie
 document.querySelector("#birth-city").addEventListener("change", updateAreas);
 updateCities();
 document.querySelector("#bazi-form").addEventListener("submit", updateReport);
+["#gender", "#calendar-type", "#birth-date", "#birth-time", "#birth-province", "#birth-city", "#birth-area", "#birth-place-mode", "#solar-time"].forEach((selector) => {
+  document.querySelector(selector).addEventListener("change", () => updateReport());
+});
 document.querySelector("#bazi-form").dispatchEvent(new Event("submit", { cancelable: true }));
