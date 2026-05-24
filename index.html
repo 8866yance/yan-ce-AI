@@ -65,7 +65,13 @@
               <span>出生历法</span>
               <select id="calendar-type" required>
                 <option value="公历" selected>公历</option>
+                <option value="农历">农历</option>
               </select>
+            </label>
+
+            <label class="toggle" id="lunar-leap-row" hidden>
+              <input id="lunar-leap" type="checkbox" />
+              <span>农历闰月</span>
             </label>
 
           <label>
@@ -214,11 +220,12 @@
             </article>
           </div>
 
-          <div class="report-copy">
-            <h3 id="summary-heading">排盘总览</h3>
-            <p id="summary">系统已根据出生信息生成专业细盘，后续 AI 会基于结构化排盘输出更详细的命理解读。</p>
-            <p id="place-note">出生地：北京市 北京市 东城区。系统会记录城市与时区，临界时辰建议使用经纬度进行真太阳时校正。</p>
-          </div>
+            <div class="report-copy">
+              <h3 id="summary-heading">排盘总览</h3>
+              <p id="summary">系统已根据出生信息生成专业细盘，后续 AI 会基于结构化排盘输出更详细的命理解读。</p>
+              <p id="place-note">出生地：北京市 北京市 东城区。系统会记录城市与时区，临界时辰建议使用经纬度进行真太阳时校正。</p>
+              <p id="cycle-detail">点击上方大运或流年，可以查看对应阶段详情。</p>
+            </div>
 
           <div class="consult-box">
             <label>

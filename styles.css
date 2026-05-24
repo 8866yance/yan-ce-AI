@@ -505,7 +505,11 @@ select {
   align-content: center;
   gap: 8px;
   padding: 10px;
+  border: 0;
   background: rgba(5, 14, 26, 0.94);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   text-align: center;
 }
 
@@ -529,6 +533,11 @@ select {
 .cycle-card.is-active {
   background: linear-gradient(180deg, rgba(68, 244, 255, 0.18), rgba(255, 79, 216, 0.12));
   box-shadow: inset 0 0 0 1px rgba(255, 209, 102, 0.38);
+}
+
+.cycle-card.is-selected {
+  outline: 2px solid rgba(255, 209, 102, 0.95);
+  outline-offset: -2px;
 }
 
 .analysis-grid {
