@@ -17,7 +17,7 @@
       ]
     },
     {
-      "source": "/(index.html|styles.css|script.js|china-pca.json|china-areas.json)",
+      "source": "/(index.html|styles.css|script.js|lunar.js|china-pca.json|china-areas.json)",
       "headers": [
         {
           "key": "Cache-Control",
