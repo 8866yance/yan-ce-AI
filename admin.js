@@ -1,4 +1,4 @@
-const API_BASE = "http://127.0.0.1:4300";
+const API_BASE = "";
 const state = {
   token: localStorage.getItem("yanCeAdminToken") || "",
   currentView: "dashboard"
@@ -32,7 +32,9 @@ async function api(path, options = {}) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.message || data.code || `接口请求失败：${response.status}`);
+    const error = new Error(data.message || data.code || `接口请求失败：${response.status}`);
+    error.status = response.status;
+    throw error;
   }
   return data;
 }
@@ -56,10 +58,12 @@ function showApp(loggedIn) {
 
 async function checkApi() {
   try {
-    const health = await api("/health");
+    const response = await fetch(`${API_BASE}/health`, { cache: "no-store" });
+    const health = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(`健康检查失败：${response.status}`);
     setStatus(`API: ${health.ok ? "正常" : "异常"}`, Boolean(health.ok));
   } catch (error) {
-    setStatus(`API: ${error.message}`, false);
+    setStatus("API: 异常", false);
   }
 }
 
@@ -88,6 +92,7 @@ function logout() {
   localStorage.removeItem("yanCeAdminToken");
   showApp(false);
   $("#view-title").textContent = "管理员登录";
+  $("#login-message").textContent = "";
 }
 
 function switchView(view) {
@@ -119,7 +124,7 @@ async function loadCurrentView() {
     await checkApi();
   } catch (error) {
     setStatus(`接口错误：${error.message}`, false);
-    if (/管理员未登录|未登录|UNAUTHORIZED|ADMIN_UNAUTHORIZED/.test(error.message)) logout();
+    if (error.status === 401 || /管理员未登录|未登录|UNAUTHORIZED|ADMIN_UNAUTHORIZED/.test(error.message)) logout();
   }
 }
 

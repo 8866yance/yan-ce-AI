@@ -54,6 +54,8 @@ const luShen = { 甲: "寅", 乙: "卯", 丙: "巳", 丁: "午", 戊: "巳", 己
 const monthLabels = ["立春 2月", "惊蛰 3月", "清明 4月", "立夏 5月", "芒种 6月", "小暑 7月", "立秋 8月", "白露 9月", "寒露 10月", "立冬 11月", "大雪 12月", "小寒 次年1月"];
 let chinaPlaces = [];
 let currentSelection = { luck: null, year: null, month: null };
+let baziState = null;
+let rechargeLoaded = false;
 
 const fallbackPlaces = [
   {
@@ -211,6 +213,84 @@ async function loadChinaAreas() {
   }
 
   chinaPlaces = fallbackPlaces;
+}
+
+async function fetchShopItems(path) {
+  const urls = [path];
+  if (["127.0.0.1", "localhost"].includes(location.hostname) && location.port === "4173") {
+    urls.push(`http://127.0.0.1:4300${path}`);
+  }
+  let lastError;
+  for (const url of urls) {
+    try {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) throw new Error(`读取失败：${response.status}`);
+      const data = await response.json();
+      return data.items || data.plans || data.packages || [];
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error("读取失败");
+}
+
+function renderMoney(value) {
+  return `¥${Number(value || 0).toFixed(2)}`;
+}
+
+function renderShopCard(item, type) {
+  const title = item.name || "未命名";
+  const price = renderMoney(item.price);
+  const desc = item.description || "后台可继续配置套餐说明。";
+  const extra = type === "membership"
+    ? `${item.durationDays || 0} 天 · ${item.unlimited ? "不限次数" : `${item.analysisLimit || 0} 次分析`}`
+    : `${item.points || 0} 积分${item.bonusPoints ? ` · 赠送 ${item.bonusPoints}` : ""}`;
+  return `
+    <button class="shop-card" type="button" data-shop-type="${type}" data-shop-name="${title}" data-shop-price="${price}">
+      <span>${title}</span>
+      <strong>${price}</strong>
+      <em>${extra}</em>
+      <small>${desc}</small>
+    </button>
+  `;
+}
+
+async function loadRechargeOptions() {
+  const planBox = document.querySelector("#membership-options");
+  const pointBox = document.querySelector("#point-options");
+  const message = document.querySelector("#recharge-message");
+  planBox.innerHTML = `<p class="shop-loading">正在读取会员套餐...</p>`;
+  pointBox.innerHTML = `<p class="shop-loading">正在读取积分包...</p>`;
+  try {
+    const [plans, packages] = await Promise.all([
+      fetchShopItems("/api/membership-plans"),
+      fetchShopItems("/api/point-packages")
+    ]);
+    planBox.innerHTML = plans.length
+      ? plans.filter((item) => item.enabled !== false).map((item) => renderShopCard(item, "membership")).join("")
+      : `<p class="shop-loading">暂无启用的会员套餐。</p>`;
+    pointBox.innerHTML = packages.length
+      ? packages.filter((item) => item.enabled !== false).map((item) => renderShopCard(item, "points")).join("")
+      : `<p class="shop-loading">暂无启用的积分包。</p>`;
+    message.textContent = "真实支付接入前，点击套餐会提示创建订单/联系客服占位信息。";
+    rechargeLoaded = true;
+  } catch (error) {
+    planBox.innerHTML = `<p class="shop-loading">会员套餐读取失败。</p>`;
+    pointBox.innerHTML = `<p class="shop-loading">积分包读取失败。</p>`;
+    message.textContent = "请确认后端 /api/membership-plans 和 /api/point-packages 正常。";
+  }
+}
+
+async function openRechargeModal() {
+  const modal = document.querySelector("#recharge-modal");
+  modal.hidden = false;
+  document.body.classList.add("modal-open");
+  if (!rechargeLoaded) await loadRechargeOptions();
+}
+
+function closeRechargeModal() {
+  document.querySelector("#recharge-modal").hidden = true;
+  document.body.classList.remove("modal-open");
 }
 
 function updateCities() {
@@ -891,7 +971,7 @@ function renderFlowMonths(year, chart, activeLuck, yearPillar, currentAge, autoR
   monthTrack.querySelectorAll("[data-cycle='month']").forEach((card) => {
     card.addEventListener("click", () => {
       baziState.selectedLiuYue = Number(card.dataset.month);
-      refreshSelectionView("month", true);
+      refreshSelectionView("month", false);
     });
   });
 
@@ -911,7 +991,7 @@ function bindCycleInteractions(chart, currentYear, currentAge, birthYear) {
       const item = chart.daYun.find((luck) => String(luck.index) === card.dataset.index);
       if (!item) return;
       baziState.selectedDaYun = item;
-      refreshSelectionView("luck", true);
+      refreshSelectionView("luck", false);
     });
   });
 
@@ -919,7 +999,7 @@ function bindCycleInteractions(chart, currentYear, currentAge, birthYear) {
     card.addEventListener("click", () => {
       baziState.selectedLiuNian = Number(card.dataset.year);
       baziState.selectedLiuYue = monthIndexForYear(baziState.selectedLiuNian);
-      refreshSelectionView("year", true);
+      refreshSelectionView("year", false);
     });
   });
 }
@@ -1125,7 +1205,6 @@ function updateReport(event) {
     const province = selectedText("#birth-province") || "北京市";
     const city = selectedText("#birth-city") || "北京市";
     const area = selectedText("#birth-area") || "东城区";
-    const placeMode = document.querySelector("#birth-place-mode").value;
     const solarTime = document.querySelector("#solar-time").checked;
     const gender = document.querySelector("#gender").value;
     const birthDate = getBirthDate(dateValue, timeValue, calendarType, lunarLeapMode);
@@ -1186,7 +1265,7 @@ function updateReport(event) {
     document.querySelector("#strength-title").textContent = `日主强弱：${strength.type}`;
     document.querySelector("#strength-copy").innerHTML = `判断原因：${strength.reasons.slice(0, 4).join(" ")}<br>喜用倾向：${strength.useful}`;
     document.querySelector("#luck-copy").textContent = `当前年份 ${currentYear} 年，当前周岁 ${currentAge} 岁（${ageInfo.birthdayStatus}）。${chart.yun.directionReason}起运按出生时刻到${chart.yun.forward ? "下一个节" : "上一个节"}的时间差折算。`;
-    document.querySelector("#place-note").textContent = `出生日期类型：${calendarType}。${calendarType === "农历" ? (leapMonth ? `该农历年闰${leapMonth}月；` : "该农历年无闰月；") : ""}出生地选择：${placeMode === "按出生地" ? `${province}${city}${area}` : "北京默认基准"}。${solarTime ? "已启用真太阳时提示，后续可接入经纬度校正。" : "当前按中国标准时间 UTC+8 生成基础分析。"}`;
+    document.querySelector("#place-note").textContent = `出生日期类型：${calendarType}。${calendarType === "农历" ? (leapMonth ? `该农历年闰${leapMonth}月；` : "该农历年无闰月；") : ""}出生地：${province}${city}${area}。子时默认按 23 点换日。${solarTime ? "真太阳时提示已开启，后续可接入经纬度校正。" : "真太阳时提示已关闭，当前按中国标准时间 UTC+8 展示。"}`;
 
     refreshSelectionView("month", true);
     if (shouldScrollToResult) {
@@ -1201,14 +1280,14 @@ function updateReport(event) {
 document.querySelector("#reset-luck")?.addEventListener("click", () => {
   if (!baziState) return;
   baziState.selectedDaYun = baziState.currentDaYun;
-  refreshSelectionView("luck", true);
+  refreshSelectionView("luck", false);
 });
 
 document.querySelector("#reset-year")?.addEventListener("click", () => {
   if (!baziState) return;
   baziState.selectedLiuNian = baziState.currentLiuNian;
   baziState.selectedLiuYue = baziState.currentLiuYue;
-  refreshSelectionView("year", true);
+  refreshSelectionView("year", false);
 });
 
 document.querySelector("#prev-decade")?.addEventListener("click", () => {
@@ -1232,6 +1311,16 @@ document.querySelector("#consult-button").addEventListener("click", () => {
     : "请先输入你想咨询的具体方向，例如事业、财运、感情、流年或某个具体问题。";
 });
 
+document.querySelector("#open-recharge")?.addEventListener("click", openRechargeModal);
+document.querySelector("#open-recharge-inline")?.addEventListener("click", openRechargeModal);
+document.querySelector("#recharge-modal")?.addEventListener("click", (event) => {
+  if (event.target.matches("[data-close-recharge]")) closeRechargeModal();
+  const card = event.target.closest?.(".shop-card");
+  if (!card) return;
+  document.querySelector("#recharge-message").textContent =
+    `已选择 ${card.dataset.shopName}（${card.dataset.shopPrice}）。真实支付接入后，这里会创建订单并跳转支付；当前可先联系客服开通。`;
+});
+
 document.querySelector("#birth-province").addEventListener("change", () => {
   updateCities();
   updateReport();
@@ -1242,7 +1331,7 @@ document.querySelector("#birth-city").addEventListener("change", () => {
 });
 document.querySelector("#birth-area").addEventListener("change", updateReport);
 document.querySelector("#bazi-form").addEventListener("submit", updateReport);
-["#gender", "#lunar-leap", "#birth-year", "#birth-month", "#birth-day", "#birth-shichen", "#zi-day-mode", "#birth-place-mode", "#solar-time"].forEach((selector) => {
+["#gender", "#lunar-leap", "#birth-year", "#birth-month", "#birth-day", "#birth-shichen", "#solar-time"].forEach((selector) => {
   document.querySelector(selector)?.addEventListener("change", () => {
     if (["#birth-year", "#birth-month", "#lunar-leap"].includes(selector)) updateLeapMonthOptions();
     else if (selector === "#birth-day") syncBirthDateFromSelects();

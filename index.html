@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>玄核 Bazi AI | AI 八字命理分析</title>
-    <link rel="stylesheet" href="styles.css?v=20260526-datefix2" />
+    <link rel="stylesheet" href="styles.css?v=20260527-ui1" />
   </head>
   <body>
     <main class="shell">
@@ -26,6 +26,7 @@
           <p class="lede">根据出生日期、时间和中国境内出生地生成专业细盘，再由 AI 做结构化解读。</p>
           <div class="hero__actions">
             <a class="button button--primary" href="#analyzer">开始排盘</a>
+            <button class="button button--gold" id="open-recharge" type="button">充值 / 开通会员</button>
             <a class="button button--ghost" href="#birthplace">查看规则</a>
           </div>
         </div>
@@ -52,6 +53,7 @@
             <p class="eyebrow">Input Console</p>
             <h2>生成你的八字排盘</h2>
           </div>
+          <button class="mini-button mini-button--gold form-recharge-button" id="open-recharge-inline" type="button">充值 / 开通会员</button>
 
           <label>
             <span>性别</span>
@@ -106,13 +108,8 @@
             <input id="time-input-mode" type="hidden" value="shichen" />
           </label>
 
-          <label>
-            <span>子时换日方式</span>
-            <select id="zi-day-mode">
-              <option value="23" selected>23点换日</option>
-              <option value="0">0点换日</option>
-            </select>
-          </label>
+          <input id="zi-day-mode" type="hidden" value="23" />
+          <p class="form-note">子时换日：默认按 23 点换日。</p>
 
           <label>
             <span>出生省份</span>
@@ -129,17 +126,11 @@
               <select id="birth-area" required></select>
             </label>
 
-          <label>
-            <span>出生地校正</span>
-            <select id="birth-place-mode" required>
-              <option value="北京" selected>北京，默认基准</option>
-                <option value="按出生地">按选择的省市区县/镇校正</option>
-            </select>
-          </label>
+          <input id="birth-place-mode" type="hidden" value="按出生地" />
 
-          <label class="toggle">
+          <label class="toggle switch-toggle">
             <input id="solar-time" type="checkbox" checked />
-            <span>启用出生地真太阳时提示</span>
+            <span>真太阳时提示</span>
           </label>
 
           <button class="button button--primary" type="submit">生成详细排盘</button>
@@ -149,6 +140,10 @@
           <div class="panel__header">
             <p class="eyebrow">Professional Chart Preview</p>
             <h2 id="report-title">专业细盘</h2>
+            <div class="panel__actions">
+              <button class="mini-button" id="reset-luck" type="button">回到当前大运</button>
+              <button class="mini-button" id="reset-year" type="button">回到当前流年</button>
+            </div>
           </div>
 
           <div class="meta-grid">
@@ -232,13 +227,11 @@
             <div class="cycle-controls">
               <div>
                 <strong id="selected-luck-status">当前查看：当前大运</strong>
-                <button class="mini-button" id="reset-luck" type="button">回到当前大运</button>
               </div>
               <div>
                 <strong id="selected-year-status">当前查看：当前流年</strong>
                 <button class="mini-button" id="prev-decade" type="button">上十年</button>
                 <button class="mini-button" id="next-decade" type="button">下十年</button>
-                <button class="mini-button" id="reset-year" type="button">回到当前流年</button>
               </div>
               <div>
                 <strong id="selected-month-status">当前查看：当前流月</strong>
@@ -305,7 +298,28 @@
       </section>
     </main>
 
+    <section class="recharge-modal" id="recharge-modal" hidden aria-labelledby="recharge-title" role="dialog">
+      <div class="recharge-modal__backdrop" data-close-recharge></div>
+      <div class="recharge-modal__panel">
+        <button class="modal-close" type="button" data-close-recharge>×</button>
+        <p class="eyebrow">Account Energy</p>
+        <h2 id="recharge-title">充值 / 开通会员</h2>
+        <p class="modal-note">套餐和积分包从后端读取。真实支付接入前，可先作为创建订单与客服确认入口。</p>
+        <div class="recharge-grid">
+          <article>
+            <h3>会员套餐</h3>
+            <div id="membership-options" class="shop-list"></div>
+          </article>
+          <article>
+            <h3>积分充值</h3>
+            <div id="point-options" class="shop-list"></div>
+          </article>
+        </div>
+        <p id="recharge-message" class="modal-message">选择套餐后，系统会提示后续支付接入方式。</p>
+      </div>
+    </section>
+
     <script src="lunar.js?v=20260524"></script>
-    <script src="script.js?v=20260526-agefix1"></script>
+    <script src="script.js?v=20260527-ux1"></script>
   </body>
 </html>

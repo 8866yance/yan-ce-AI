@@ -17,6 +17,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -67,6 +71,22 @@ textarea {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 230px 1fr;
+}
+
+.is-logged-out .admin-shell {
+  grid-template-columns: 1fr;
+}
+
+.is-logged-out .sidebar,
+.is-logged-out .topbar,
+.is-logged-out .content {
+  display: none;
+}
+
+.is-logged-out .main-panel {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
 }
 
 .sidebar {
@@ -177,6 +197,11 @@ h2 {
   display: grid;
   place-items: center;
   min-height: calc(100vh - 130px);
+}
+
+.is-logged-out .login-panel {
+  width: min(520px, calc(100vw - 32px));
+  min-height: auto;
 }
 
 .login-box {
@@ -502,4 +527,64 @@ td {
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+/* 2026-05-27: align admin with the mystic tech theme without changing layout */
+:root {
+  --bg: #05070b;
+  --panel: rgba(8, 18, 28, 0.9);
+  --panel-2: rgba(11, 25, 38, 0.92);
+  --line: rgba(216, 181, 106, 0.24);
+  --cyan: #59d8c0;
+  --magenta: #8d5cf6;
+  --amber: #d8b56a;
+}
+
+body {
+  position: relative;
+  background:
+    radial-gradient(circle at 78% 8%, rgba(141, 92, 246, 0.14), transparent 28%),
+    radial-gradient(circle at 24% 78%, rgba(89, 216, 192, 0.12), transparent 30%),
+    linear-gradient(rgba(216, 181, 106, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(89, 216, 192, 0.04) 1px, transparent 1px),
+    #05070b;
+  background-size: auto, auto, 56px 56px, 56px 56px, auto;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  right: -220px;
+  top: -220px;
+  width: 620px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.16;
+  background:
+    repeating-conic-gradient(rgba(216, 181, 106, 0.2) 0 1deg, transparent 1deg 12deg),
+    radial-gradient(circle, transparent 0 45%, rgba(89, 216, 192, 0.18) 45.2% 45.7%, transparent 46%);
+}
+
+.brand,
+.metric,
+.panel,
+.edit-form,
+.login-box,
+.table-wrap,
+.prompt-form,
+.list-item {
+  border-color: rgba(216, 181, 106, 0.22);
+  box-shadow: inset 0 0 32px rgba(89, 216, 192, 0.035);
+}
+
+.nav__item.is-active,
+.login-box button,
+.edit-form button[type="submit"],
+.form-actions button:first-child {
+  background: linear-gradient(90deg, #59d8c0, #d8b56a 54%, #8d5cf6);
+}
+
+button:hover {
+  border-color: var(--amber);
 }
