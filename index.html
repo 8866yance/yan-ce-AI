@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>玄核 Bazi AI | AI 八字命理分析</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260526-datefix2" />
   </head>
   <body>
     <main class="shell">
@@ -69,19 +69,49 @@
               </select>
             </label>
 
-            <label class="toggle" id="lunar-leap-row" hidden>
-              <input id="lunar-leap" type="checkbox" />
+            <label id="lunar-leap-row" hidden>
               <span>农历闰月</span>
+              <select id="lunar-leap">
+                <option value="normal" selected>普通月</option>
+              </select>
             </label>
 
-          <label>
+<label class="date-select-row">
             <span id="birth-date-label">公历出生日期</span>
-            <input id="birth-date" type="date" required value="1996-08-18" />
+            <div class="date-selects" aria-label="出生日期选择">
+              <select id="birth-year" aria-label="出生年份"></select>
+              <select id="birth-month" aria-label="出生月份"></select>
+              <select id="birth-day" aria-label="出生日期"></select>
+            </div>
+            <input id="birth-date" type="hidden" value="1996-08-18" />
+          </label>
+
+          <label id="shichen-row">
+            <span>出生时辰</span>
+            <select id="birth-shichen">
+              <option value="23:30">子时 23:00-00:59</option>
+              <option value="01:30">丑时 01:00-02:59</option>
+              <option value="03:30">寅时 03:00-04:59</option>
+              <option value="05:30">卯时 05:00-06:59</option>
+              <option value="07:30">辰时 07:00-08:59</option>
+              <option value="09:30">巳时 09:00-10:59</option>
+              <option value="11:30">午时 11:00-12:59</option>
+              <option value="13:30">未时 13:00-14:59</option>
+              <option value="15:30">申时 15:00-16:59</option>
+              <option value="17:30">酉时 17:00-18:59</option>
+              <option value="19:30">戌时 19:00-20:59</option>
+              <option value="21:30">亥时 21:00-22:59</option>
+            </select>
+            <input id="birth-time" type="hidden" value="23:30" />
+            <input id="time-input-mode" type="hidden" value="shichen" />
           </label>
 
           <label>
-            <span>出生时间</span>
-            <input id="birth-time" type="time" value="23:30" />
+            <span>子时换日方式</span>
+            <select id="zi-day-mode">
+              <option value="23" selected>23点换日</option>
+              <option value="0">0点换日</option>
+            </select>
           </label>
 
           <label>
@@ -123,9 +153,18 @@
 
           <div class="meta-grid">
             <div><span>日期</span><strong id="meta-date">公历 1996-08-18 23:30</strong></div>
+            <div><span>用于排盘</span><strong id="meta-used-solar">公历 1996-08-18 23:30</strong></div>
             <div><span>出生地</span><strong id="meta-place">北京市 北京市 东城区</strong></div>
             <div><span>起运</span><strong id="meta-start-luck">出生后 8 年 2 月 3 天起运</strong></div>
             <div><span>当前</span><strong id="meta-current">38 岁 · 司令：癸</strong></div>
+          </div>
+
+          <div class="element-legend" aria-label="五行颜色图例">
+            <span class="element-wood">木</span>
+            <span class="element-fire">火</span>
+            <span class="element-earth">土</span>
+            <span class="element-metal">金</span>
+            <span class="element-water">水</span>
           </div>
 
           <div class="chart-card">
@@ -190,6 +229,21 @@
           </div>
 
           <section class="cycle-section" aria-label="大运流年流月">
+            <div class="cycle-controls">
+              <div>
+                <strong id="selected-luck-status">当前查看：当前大运</strong>
+                <button class="mini-button" id="reset-luck" type="button">回到当前大运</button>
+              </div>
+              <div>
+                <strong id="selected-year-status">当前查看：当前流年</strong>
+                <button class="mini-button" id="prev-decade" type="button">上十年</button>
+                <button class="mini-button" id="next-decade" type="button">下十年</button>
+                <button class="mini-button" id="reset-year" type="button">回到当前流年</button>
+              </div>
+              <div>
+                <strong id="selected-month-status">当前查看：当前流月</strong>
+              </div>
+            </div>
             <div class="cycle-block">
               <div class="cycle-label">大运</div>
               <div class="cycle-track" id="luck-track"></div>
@@ -252,6 +306,6 @@
     </main>
 
     <script src="lunar.js?v=20260524"></script>
-    <script src="script.js?v=20260524-element-color"></script>
+    <script src="script.js?v=20260526-agefix1"></script>
   </body>
 </html>

@@ -90,8 +90,7 @@ function elementOfChar(char) {
 function renderGanZhiPart(char, part = "") {
   const element = elementOfChar(char);
   const className = element ? ` element-${elementClass[element]}` : "";
-  const label = element ? `<small>${element}</small>` : "";
-  return `<span class="gz-char${className}" data-part="${part}" data-element="${element}"><b>${char}</b>${label}</span>`;
+  return `<span class="gz-char${className}" data-part="${part}" data-element="${element}" title="${char} · ${element || ""}"><b>${char}</b></span>`;
 }
 
 function renderGanZhi(pillar) {
@@ -109,14 +108,14 @@ function parseDateParts(dateValue) {
   };
 }
 
-function getBirthDate(dateValue, timeValue, calendarType = "公历", isLeapMonth = false) {
+function getBirthDate(dateValue, timeValue, calendarType = "公历", lunarLeapMode = "normal") {
   const [hour = "0", minute = "0"] = (timeValue || "00:00").split(":");
   const { year, month, day } = parseDateParts(dateValue);
   const h = Number(hour);
   const m = Number(minute);
 
   if (calendarType === "农历") {
-    const lunarMonth = isLeapMonth ? -month : month;
+    const lunarMonth = lunarLeapMode === "leap" ? -month : month;
     const solar = Lunar.fromYmdHms(year, lunarMonth, day, h, m, 0).getSolar();
     return new Date(solar.getYear(), solar.getMonth() - 1, solar.getDay(), solar.getHour(), solar.getMinute(), solar.getSecond());
   }
@@ -128,6 +127,17 @@ function calculateAge(birthDate, today = new Date()) {
   let age = today.getFullYear() - birthDate.getFullYear();
   const hadBirthday = today.getMonth() > birthDate.getMonth() || (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
   return Math.max(hadBirthday ? age : age - 1, 0);
+}
+
+function getAgeInfo(birthDate, today = new Date()) {
+  const hadBirthday = today.getMonth() > birthDate.getMonth() || (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+  const fullAge = calculateAge(birthDate, today);
+  return {
+    fullAge,
+    hadBirthday,
+    birthdayStatus: hadBirthday ? "今年生日已过" : "今年生日未到",
+    todayText: formatDate(today)
+  };
 }
 
 function tenGod(dayStem, targetStem) {
@@ -144,6 +154,22 @@ function tenGod(dayStem, targetStem) {
   if (controllingElement[targetEl] === dayEl) return samePolarity ? "七杀" : "正官";
   if (producingElement[targetEl] === dayEl) return samePolarity ? "偏印" : "正印";
   return "";
+}
+
+function godMeaning(god) {
+  const map = {
+    比肩: "自我、同辈、竞争与独立性",
+    劫财: "行动力、人际竞争与资源分配",
+    食神: "表达、作品、享受与稳定输出",
+    伤官: "表达突破、变化意识与规则摩擦",
+    偏财: "机会、客户、流动资源与现实经营",
+    正财: "稳定收入、责任分配与现实安排",
+    七杀: "压力、挑战、执行力与外部规则",
+    正官: "秩序、职位、规范与责任",
+    偏印: "学习、灵感、非标准资源与思考",
+    正印: "支持、学习、贵人和安全感"
+  };
+  return map[god] || "阶段主题";
 }
 
 function hiddenWithGods(branch, dayStem) {
@@ -190,7 +216,7 @@ async function loadChinaAreas() {
 function updateCities() {
   const province = selectedNode("#birth-province", chinaPlaces);
   const cities = province.children || [];
-  fillSelect(document.querySelector("#birth-city"), cities, (city) => city.name === "市辖区" ? "北京市，默认城市" : city.name);
+  fillSelect(document.querySelector("#birth-city"), cities, (city) => city.name === "市辖区" ? province.name : city.name);
   updateAreas();
 }
 
@@ -299,15 +325,41 @@ function getGroupRelations(allBranches) {
 
 function relationSummary(targetPillar, chart, extraBranches = []) {
   const target = splitPillar(targetPillar);
-  const stemTexts = chart.stems.flatMap((stem, index) => getStemRelation(target.stem, stem).map((text) => `${text}（对${["年", "月", "日", "时"][index]}干${stem}）`));
-  const branchTexts = chart.branches.flatMap((branch, index) => getBranchRelation(target.branch, branch).map((text) => `${text}（对${["年", "月", "日", "时"][index]}支${branch}）`));
-  const groups = getGroupRelations([...chart.branches, ...extraBranches, target.branch]);
+  const stemTexts = [];
+  const branchTexts = [];
+  const labels = ["年", "月", "日", "时"];
+
+  chart.stems.forEach((stem, index) => {
+    const rels = getStemRelation(target.stem, stem);
+    rels.forEach((rel) => {
+      if (rel.includes("合")) stemTexts.push(`${target.stem}与${stem}成${rel}，说明对应主题容易互相牵引，需要看是否能化成有用之气。`);
+      else if (rel.includes("生")) stemTexts.push(`${target.stem}与${labels[index]}干${stem}有相生关系，代表资源、想法或行动上有承接。`);
+      else if (rel.includes("克")) stemTexts.push(`${target.stem}与${labels[index]}干${stem}有相克关系，事情推进时更容易出现规则、压力或取舍。`);
+      else stemTexts.push(`${target.stem}与${labels[index]}干${stem}同气，相关主题会被放大。`);
+    });
+  });
+
+  chart.branches.forEach((branch, index) => {
+    const rels = getBranchRelation(target.branch, branch);
+    rels.forEach((rel) => {
+      if (rel.includes("冲")) branchTexts.push(`${target.branch}与${labels[index]}支${branch}形成${rel}，容易引动变化、奔波或关系位置调整。`);
+      else if (rel.includes("合")) branchTexts.push(`${target.branch}与${labels[index]}支${branch}形成${rel}，资源和关系有聚合倾向，但仍要看喜忌。`);
+      else if (rel.includes("刑")) branchTexts.push(`${target.branch}与${labels[index]}支${branch}形成${rel}，做事容易有卡点，适合降低急躁。`);
+      else if (rel.includes("害") || rel.includes("破")) branchTexts.push(`${target.branch}与${labels[index]}支${branch}形成${rel}，细节、人情或合作边界需要更清楚。`);
+      else branchTexts.push(`${target.branch}与${labels[index]}支${branch}形成${rel}，相关主题会被带动。`);
+    });
+  });
+
+  const groupBranches = [...chart.branches, ...extraBranches, target.branch].filter(Boolean);
+  getGroupRelations(groupBranches).forEach((rel) => {
+    branchTexts.push(`${rel}成立，代表某一类五行气势被聚合，影响会比单个地支更明显。`);
+  });
+
   return {
-    stems: stemTexts.length ? stemTexts : ["天干未形成明显五合或直接生克"],
-    branches: [...branchTexts, ...groups].length ? [...branchTexts, ...groups] : ["地支未形成明显刑冲合害破或三合三会"]
+    stems: stemTexts.length ? stemTexts : ["天干未见特别强的五合或生克，先按十神和五行气势观察。"],
+    branches: branchTexts.length ? branchTexts : ["地支未见明显冲合刑害破，阶段主题相对不以突发变化为主。"]
   };
 }
-
 function natalRelationSummary(chart) {
   const stemTexts = [];
   const branchTexts = [];
@@ -343,6 +395,7 @@ function branchGroup(branch) {
 function getShenSha(chart, contextPillars = []) {
   const dayBranch = chart.branches[2];
   const dayStem = chart.stems[2];
+  const yearBranch = chart.branches[0];
   const group = branchGroup(dayBranch);
   const positions = [
     ...chart.pillars.map((pillar, index) => ({ label: ["年柱", "月柱", "日柱", "时柱"][index], pillar, branch: pillar.slice(1, 2) })),
@@ -351,7 +404,7 @@ function getShenSha(chart, contextPillars = []) {
   const result = [];
   const add = (name, targetBranches, meaning) => {
     positions.forEach((position) => {
-      if (targetBranches.includes(position.branch)) {
+      if (targetBranches.filter(Boolean).includes(position.branch)) {
         result.push(`${name}在${position.label}${position.pillar}：${meaning}`);
       }
     });
@@ -372,15 +425,27 @@ function getShenSha(chart, contextPillars = []) {
 
   add("天乙贵人", tianYi[dayStem] || [], "贵人助力、遇事较易得到支持。");
   add("文昌贵人", [wenChang[dayStem]], "学习、表达、证书、方案能力较容易发挥。");
-  add("羊刃", [yangRen[dayStem]], "行动力强但也容易急躁、冲突或身体损伤。");
+  add("羊刃", [yangRen[dayStem]], "行动力强但也容易急躁，需注意边界和安全。");
   add("禄神", [luShen[dayStem]], "资源、职位、收入基础或自我掌控力。");
+
+  contextPillars.forEach((item) => {
+    if (!item?.pillar) return;
+    const branch = item.pillar.slice(1, 2);
+    if (item.label === "流年") {
+      result.push(`太岁在${item.label}${item.pillar}：当年地支主一年外部主题，宜结合原局喜忌判断。`);
+      const opposite = branches[mod(branches.indexOf(branch) + 6, 12)];
+      if (positions.some((position) => position.branch === opposite)) {
+        result.push(`岁破被引动：流年${branch}冲命局${opposite}，容易带来调整、奔波或关系变化。`);
+      }
+    }
+  });
+
   chart.xunKong.forEach((value, index) => {
     if (value) result.push(`空亡在${["年柱", "月柱", "日柱", "时柱"][index]}${chart.pillars[index]}：对应事务有虚、迟、反复或需落地验证。`);
   });
 
-  return result.length ? result : ["未见明显常用神煞；神煞只作辅助参考，仍以五行、十神、生克制化为主。"];
+  return result.length ? [...new Set(result)] : ["未见明显常用神煞；神煞只作辅助参考，仍以五行、十神、生克制化为主。"];
 }
-
 function briefShenSha(chart, label, pillar) {
   const texts = getShenSha(chart, [{ label, pillar }])
     .filter((text) => text.includes(`在${label}${pillar}`))
@@ -468,26 +533,24 @@ function analyzeStrength(chart) {
 }
 
 function makeAdvice(god, branchRelationsText, strengthType) {
-  const pressure = branchRelationsText.some((text) => text.includes("冲") || text.includes("刑") || text.includes("害") || text.includes("破"));
+  const pressure = branchRelationsText.some((text) => /冲|刑|害|破/.test(text));
   const support = ["正印", "偏印", "比肩", "劫财"].includes(god);
   const wealth = ["正财", "偏财"].includes(god);
   const career = ["正官", "七杀"].includes(god);
   const output = ["食神", "伤官"].includes(god);
 
   return {
-    overall: pressure ? "整体偏动，机会与压力并存，重要决策要留缓冲。" : support ? "整体偏稳，适合蓄力、学习、修复资源。" : "整体以顺势推进为主，宜看清主线后行动。",
-    love: pressure ? "感情、人际容易因节奏不同出现摩擦，少用情绪推动关系。" : wealth ? "情感互动和现实议题变多，适合谈边界与承诺。" : "关系宜稳定沟通，避免只顾事务忽略感受。",
-    career: career ? "事业规则、职位、责任感增强，适合争取规范平台。" : output ? "适合表达、作品、方案输出，但注意别和规则硬碰。" : "事业以稳步推进和复盘资源为主。",
-    wealth: wealth ? "财务议题被引动，适合规划收入、客户、项目回款。" : pressure ? "财务上避免冲动投入和人情借贷。" : "财务宜守正，先确保现金流稳定。",
-    network: support ? "容易得到同辈或长辈支持，但也要防依赖。" : pressure ? "合作中要把责任和期限写清楚。" : "人际以互惠和清晰沟通为佳。",
-    health: pressure ? "注意睡眠、肝胆筋骨、交通与运动损伤。" : strengthType.includes("弱") ? "体力消耗后恢复慢，注意规律作息。" : "健康重点是避免过劳和饮食失衡。"
+    overall: pressure ? "整体偏动，容易有调整和推进压力，适合先稳住节奏再做选择。" : support ? "整体偏稳，适合补资源、学习、修复关系和慢慢蓄力。" : "整体可以顺势推进，但重要事仍建议留出缓冲。",
+    career: career ? "事业上责任感和规则感增强，适合处理岗位、制度、合作规范类事项。" : output ? "事业上更适合表达、方案、作品或对外沟通，但要避免和规则硬碰。" : "事业以稳步推进为主，可以关注已有资源的复盘和整合。",
+    wealth: wealth ? "财务议题会更明显，适合关注正向收入、回款和预算安排，不宜把高风险投入放得过重。" : pressure ? "财运以稳为主，容易因变化产生额外支出，适合先控制节奏。" : "财务适合保守规划，先保证现金流和日常安排稳定。",
+    love: pressure ? "感情互动中容易因节奏和表达方式不同产生误会，适合多沟通、少用情绪判断。" : wealth ? "感情中现实议题会增加，适合把边界、承诺和期待说清楚。" : "关系宜稳定沟通，不必急着下结论。",
+    network: pressure ? "人际合作需要把责任、时间和边界讲清楚，避免过度卷入。" : support ? "人际上较容易得到同辈或长辈支持，但也要保持独立判断。" : "人际以互惠和清晰表达为佳。",
+    health: pressure ? "健康方面以作息、情绪和压力管理为主，出行运动时留意安全，不做具体疾病判断。" : strengthType.includes("弱") ? "体力和恢复节奏需要关注，适合规律作息、减少透支。" : "健康重点是避免过劳和饮食作息失衡。"
   };
 }
-
 function renderDetailHtml(title, sections) {
-  return `<strong>${title}</strong>${sections.map((section) => `<br><br><b>${section.label}</b><br>${section.content}`).join("")}`;
+  return `<strong>${title}</strong><div class="detail-sections">${sections.map((section) => `<div class="detail-item"><b>${section.label}</b>${section.content}</div>`).join("")}</div>`;
 }
-
 function formatDate(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -496,10 +559,18 @@ function formatDate(date) {
 }
 
 function formatHiddenGan(gans, gods) {
-  return gans.map((gan, index) => `${renderGanZhiPart(gan, "hidden")}${gods[index] || ""}`).join("<br>");
+  return gans.map((gan, index) => `<span class="mini-gan">${renderGanZhiPart(gan, "hidden")}${gods[index] || ""}</span>`).join("");
 }
 
-function buildAccurateChart(date, gender) {
+function timePillarFromDayStem(dayStem, hour, minute) {
+  const zhiIndex = window.LunarUtil.getTimeZhiIndex(`${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`);
+  const dayIndex = stems.indexOf(dayStem);
+  const gan = stems[(dayIndex % 5 * 2 + zhiIndex) % 10];
+  const zhi = branches[zhiIndex];
+  return gan + zhi;
+}
+
+function buildAccurateChart(date, gender, ziDayMode = "23") {
   if (!window.Solar) {
     throw new Error("lunar.js 未加载，无法计算八字。");
   }
@@ -514,33 +585,50 @@ function buildAccurateChart(date, gender) {
   );
   const lunar = solar.getLunar();
   const eightChar = lunar.getEightChar();
-  eightChar.setSect(2);
+  const daySect = ziDayMode === "23" ? 1 : 2;
+  eightChar.setSect(daySect);
   const yun = eightChar.getYun(gender === "男" ? 1 : 0, 2);
+
+  let timePillar = eightChar.getTime();
+  if (ziDayMode === "0") {
+    timePillar = timePillarFromDayStem(eightChar.getDayGan(), date.getHours(), date.getMinutes());
+  }
+  const timeStem = timePillar.slice(0, 1);
+  const timeBranch = timePillar.slice(1, 2);
+  const pillars = [eightChar.getYear(), eightChar.getMonth(), eightChar.getDay(), timePillar];
+  const chartStems = [eightChar.getYearGan(), eightChar.getMonthGan(), eightChar.getDayGan(), timeStem];
+  const chartBranches = [eightChar.getYearZhi(), eightChar.getMonthZhi(), eightChar.getDayZhi(), timeBranch];
+  const yearStem = eightChar.getYearGan();
+  const yearYinYang = stems.indexOf(yearStem) % 2 === 0 ? "阳" : "阴";
+  const directionRule = gender === "男"
+    ? (yearYinYang === "阳" ? "男阳顺" : "男阴逆")
+    : (yearYinYang === "阴" ? "女阴顺" : "女阳逆");
 
   return {
     solar,
     lunar,
     eightChar,
-    pillars: [eightChar.getYear(), eightChar.getMonth(), eightChar.getDay(), eightChar.getTime()],
-    stems: [eightChar.getYearGan(), eightChar.getMonthGan(), eightChar.getDayGan(), eightChar.getTimeGan()],
-    branches: [eightChar.getYearZhi(), eightChar.getMonthZhi(), eightChar.getDayZhi(), eightChar.getTimeZhi()],
+    ziDayMode,
+    pillars,
+    stems: chartStems,
+    branches: chartBranches,
     hiddenGan: [
       eightChar.getYearHideGan(),
       eightChar.getMonthHideGan(),
       eightChar.getDayHideGan(),
-      eightChar.getTimeHideGan()
+      hiddenStems[timeBranch] || []
     ],
     hiddenGods: [
       eightChar.getYearShiShenZhi(),
       eightChar.getMonthShiShenZhi(),
       eightChar.getDayShiShenZhi(),
-      eightChar.getTimeShiShenZhi()
+      (hiddenStems[timeBranch] || []).map((stem) => tenGod(eightChar.getDayGan(), stem))
     ],
     tenGods: [
       eightChar.getYearShiShenGan(),
       eightChar.getMonthShiShenGan(),
       eightChar.getDayShiShenGan(),
-      eightChar.getTimeShiShenGan()
+      tenGod(eightChar.getDayGan(), timeStem)
     ],
     stages: [
       eightChar.getYearDiShi(),
@@ -552,13 +640,13 @@ function buildAccurateChart(date, gender) {
       eightChar.getYearXunKong(),
       eightChar.getMonthXunKong(),
       eightChar.getDayXunKong(),
-      eightChar.getTimeXunKong()
+      window.LunarUtil.getXunKong(timePillar)
     ],
     nayin: [
       eightChar.getYearNaYin(),
       eightChar.getMonthNaYin(),
       eightChar.getDayNaYin(),
-      eightChar.getTimeNaYin()
+      getNaYinForPillar(timePillar)
     ],
     yun: {
       forward: yun.isForward(),
@@ -566,28 +654,29 @@ function buildAccurateChart(date, gender) {
       startMonth: yun.getStartMonth(),
       startDay: yun.getStartDay(),
       startHour: yun.getStartHour(),
-      startSolar: yun.getStartSolar().toYmdHms()
+      startSolar: yun.getStartSolar().toYmdHms(),
+      directionRule,
+      directionReason: `年干${yearStem}为${yearYinYang}干，性别为${gender}，按男阳顺、女阴顺、男阴逆、女阳逆，故为${yun.isForward() ? "顺行" : "逆行"}。`
     },
-    daYun: yun.getDaYun(10).map((item) => ({
+    daYun: yun.getDaYun(14).map((item) => ({
       index: item.getIndex(),
       ganZhi: item.getGanZhi(),
       startYear: item.getStartYear(),
       endYear: item.getEndYear(),
       startAge: item.getStartAge(),
       endAge: item.getEndAge(),
+      current: false,
       xunKong: item.getGanZhi() ? item.getXunKong() : ""
     }))
   };
 }
 
-function updateProfessionalRows(chart, currentYear, currentAge) {
+function updateProfessionalRows(chart, selectedYear, selectedDaYun) {
   const keys = ["flow", "luck", "year", "month", "day", "hour"];
   const dayStem = chart.stems[2];
-  const flowPillar = getFlowYearPillar(currentYear);
-  const activeLuck = chart.daYun.find((item) => item.index > 0 && currentAge >= item.startAge && currentAge <= item.endAge)
-    || chart.daYun.find((item) => item.index > 0)
-    || { ganZhi: "" };
-  const luckPillar = activeLuck.ganZhi || flowPillar;
+  const flowPillar = getFlowYearPillar(selectedYear);
+  const viewedLuck = selectedDaYun || chart.daYun.find((item) => item.index > 0) || { ganZhi: "" };
+  const luckPillar = viewedLuck.ganZhi || flowPillar;
   const allPillars = [flowPillar, luckPillar, ...chart.pillars];
 
   keys.forEach((key, index) => {
@@ -600,68 +689,130 @@ function updateProfessionalRows(chart, currentYear, currentAge) {
       : hiddenWithGods(item.branch, dayStem);
     document.querySelector(`#stage-${key}`).textContent = index >= 2 ? chart.stages[index - 2] : stages[mod(branches.indexOf(item.branch), stages.length)];
     document.querySelector(`#self-${key}`).textContent = index >= 2 ? chart.stages[index - 2] : stages[mod(branches.indexOf(item.branch) + 4, stages.length)];
-    document.querySelector(`#void-${key}`).textContent = index >= 2 ? chart.xunKong[index - 2] : (key === "luck" ? activeLuck.xunKong : "");
+    document.querySelector(`#void-${key}`).textContent = index >= 2
+      ? chart.xunKong[index - 2]
+      : (key === "luck" ? viewedLuck.xunKong : window.LunarUtil.getXunKong(allPillars[index]));
     document.querySelector(`#nayin-${key}`).textContent = index >= 2 ? chart.nayin[index - 2] : getNaYinForPillar(allPillars[index]);
     document.querySelector(`#sha-${key}`).textContent = index >= 2
       ? briefShenSha(chart, ["年柱", "月柱", "日柱", "时柱"][index - 2], allPillars[index])
       : briefShenSha(chart, key === "flow" ? "流年" : "大运", allPillars[index]);
   });
 }
-
 function getActiveLuck(chart, currentAge) {
   return chart.daYun.find((item) => item.index > 0 && currentAge >= item.startAge && currentAge <= item.endAge)
     || chart.daYun.find((item) => item.index > 0);
+}
+
+function scoreTrend(relations, god, strengthType) {
+  let score = 70;
+  score -= relations.branches.filter((text) => /冲|刑|害|破/.test(text)).length * 7;
+  score += relations.branches.filter((text) => /合|会/.test(text)).length * 4;
+  if (strengthType.includes("弱") && ["正印", "偏印", "比肩", "劫财"].includes(god)) score += 8;
+  if ((strengthType.includes("强") || strengthType.includes("从强")) && ["正官", "七杀", "正财", "偏财", "食神", "伤官"].includes(god)) score += 6;
+  if (["七杀", "伤官", "劫财"].includes(god)) score -= 3;
+  const bounded = Math.max(35, Math.min(92, score));
+  return bounded >= 78 ? `${bounded}分，偏助力` : bounded >= 60 ? `${bounded}分，平中有动` : `${bounded}分，偏压力`;
+}
+
+function relationListText(list, limit = 3) {
+  return list.slice(0, limit).join("<br>");
+}
+
+function usefulElements(strength, dayStem) {
+  const dayElement = stemElement[dayStem];
+  const sealElement = Object.keys(producingElement).find((element) => producingElement[element] === dayElement);
+  if (strength.type.includes("弱")) return [sealElement, dayElement].filter(Boolean);
+  if (strength.type.includes("强")) return [producingElement[dayElement], controllingElement[dayElement]].filter(Boolean);
+  return [sealElement, producingElement[dayElement]].filter(Boolean);
+}
+
+function directionAdvice(chart, strength) {
+  const map = {
+    木: "东方、东南",
+    火: "南方",
+    土: "中部、西南、东北",
+    金: "西方、西北",
+    水: "北方"
+  };
+  const useful = usefulElements(strength, chart.stems[2]);
+  const cautious = Object.keys(map).filter((element) => !useful.includes(element) && element !== stemElement[chart.stems[2]]).slice(0, 2);
+  return `方位只作参考。此盘可优先参考${useful.map((element) => map[element]).join("、")}等方向；${cautious.map((element) => map[element]).join("、")}相关环境可谨慎评估，不做绝对结论。`;
+}
+
+function focusYearsInLuck(luck, chart, limit = 4) {
+  if (!luck?.startYear) return "暂无明确重点流年。";
+  const years = [];
+  for (let year = luck.startYear; year <= luck.endYear; year += 1) {
+    const pillar = getFlowYearPillar(year);
+    const rel = relationSummary(pillar, chart, [luck.ganZhi.slice(1, 2)]).branches;
+    if (rel.some((text) => /冲|刑|害|破|合|会/.test(text))) years.push(`${year} ${pillar}`);
+  }
+  return years.slice(0, limit).join("、") || "该步大运中未见特别集中的冲合年份，可按年度流年细看。";
+}
+
+function monthRiskText(year, chart, yearPillar) {
+  const months = buildFlowMonths(year).filter((month) => {
+    const rel = relationSummary(month.pillar, chart, [yearPillar.slice(1, 2)]).branches;
+    return rel.some((text) => /冲|刑|害|破/.test(text));
+  });
+  return months.slice(0, 4).map((month) => `${month.label}${month.pillar}`).join("、") || "未见特别强的冲刑害破月份。";
 }
 
 function renderCycleDetail(type, data, chart, currentYear, currentAge) {
   const detail = document.querySelector("#cycle-detail");
   const dayStem = chart.stems[2];
   const strength = analyzeStrength(chart);
+  const selectedLuck = baziState?.selectedDaYun || data.luck || getActiveLuck(chart, currentAge || 0);
+  const selectedYear = baziState?.selectedLiuNian || data.year || currentYear;
 
   if (type === "luck") {
-    const decadeYears = `${data.startYear}-${data.endYear}`;
     const god = tenGod(dayStem, data.ganZhi.slice(0, 1));
     const relations = relationSummary(data.ganZhi, chart);
     const advice = makeAdvice(god, relations.branches, strength.type);
-    const sha = getShenSha(chart, [{ label: "大运", pillar: data.ganZhi }]).slice(0, 5).join("<br>");
-    detail.innerHTML = renderDetailHtml(`已选大运：${renderGanZhi(data.ganZhi)}（${decadeYears}，${data.startAge}-${data.endAge}岁）`, [
-      { label: "十神与作用", content: `大运天干对日主为${god}，${god}代表${godMeaning(god)}。${strength.type.includes("弱") ? "日主偏弱时先看是否能帮扶日主。" : "日主不弱时更重视能否形成流通和制化。"}` },
-      { label: "天干生克", content: relations.stems.join("<br>") },
-      { label: "地支刑冲合害破", content: relations.branches.join("<br>") },
-      { label: "神煞参考", content: `${sha}<br>神煞只作参考，不作为唯一判断。` },
-      { label: "五类提示", content: `事业：${advice.career}<br>财运：${advice.wealth}<br>感情：${advice.love}<br>人际：${advice.network}<br>健康：${advice.health}<br>整体：${advice.overall}` }
+    const sha = getShenSha(chart, [{ label: "大运", pillar: data.ganZhi }]).slice(0, 4).join("<br>");
+    detail.innerHTML = renderDetailHtml(`当前查看大运：${renderGanZhi(data.ganZhi)}（${data.startYear}-${data.endYear}，${data.startAge}-${data.endAge}岁）`, [
+      { label: "大运总评", content: `此步大运天干为${god}，主题偏向${godMeaning(god)}。${advice.overall}` },
+      { label: "与原局关系", content: `${relationListText(relations.stems, 2)}<br>${relationListText(relations.branches, 3)}` },
+      { label: "喜忌判断", content: strength.type.includes("弱") ? "日主偏弱时，能生扶日主的大运更容易成为助力；克泄耗过重时压力会增加。" : "日主不弱时，更重视大运是否让五行流通、责任和表达是否平衡。" },
+      { label: "事业财运", content: `事业：${advice.career}<br>财运：${advice.wealth}` },
+      { label: "感情人际", content: `感情：${advice.love}<br>人际：${advice.network}` },
+      { label: "健康注意", content: advice.health },
+      { label: "重点流年", content: focusYearsInLuck(data, chart) },
+      { label: "神煞参考", content: `${sha}<br>神煞只是辅助参考，不单独定吉凶。` }
     ]);
-    document.querySelector("#luck-cycle").innerHTML = `已选大运：${renderGanZhi(data.ganZhi)}`;
+    document.querySelector("#luck-cycle").innerHTML = `当前查看大运：${renderGanZhi(data.ganZhi)}`;
     return;
   }
 
   if (type === "year") {
     const pillar = getFlowYearPillar(data.year);
-    const activeLuck = data.luck || getActiveLuck(chart, currentAge || 0);
+    const activeLuck = data.luck || selectedLuck;
     const god = tenGod(dayStem, pillar.slice(0, 1));
     const relations = relationSummary(pillar, chart, activeLuck?.ganZhi ? [activeLuck.ganZhi.slice(1, 2)] : []);
     const advice = makeAdvice(god, relations.branches, strength.type);
     const sha = getShenSha(chart, [
       activeLuck?.ganZhi ? { label: "大运", pillar: activeLuck.ganZhi } : null,
       { label: "流年", pillar }
-    ].filter(Boolean)).slice(0, 6).join("<br>");
-    const riskyMonths = buildFlowMonths(data.year).filter((month) => relationSummary(month.pillar, chart, [pillar.slice(1, 2)]).branches.some((text) => /冲|刑|害|破/.test(text))).slice(0, 3).map((month) => `${month.label}${month.pillar}`).join("、") || "未见特别强的冲刑害破月份";
-    detail.innerHTML = renderDetailHtml(`已选流年：${data.year}年 ${renderGanZhi(pillar)}`, [
-      { label: "十神与大运", content: `流年天干对日主为${god}，当前大运为${activeLuck?.ganZhi || "待定"}。流年与大运、原局共同决定这一年的主题。` },
-      { label: "天干生克", content: relations.stems.join("<br>") },
-      { label: "地支刑冲合害破", content: relations.branches.join("<br>") },
-      { label: "神煞参考", content: `${sha}<br>神煞只作参考，仍以命局和岁运作用为主。` },
-      { label: "需要注意的月份", content: riskyMonths },
-      { label: "五类提示", content: `事业：${advice.career}<br>财运：${advice.wealth}<br>感情：${advice.love}<br>人际：${advice.network}<br>健康：${advice.health}<br>整体评分：${scoreTrend(relations, god, strength.type)}。${advice.overall}` }
+    ].filter(Boolean)).slice(0, 5).join("<br>");
+    detail.innerHTML = renderDetailHtml(`当前查看流年：${data.year}年 ${renderGanZhi(pillar)}（结合${activeLuck?.ganZhi || "待定"}大运）`, [
+      { label: "流年总评", content: `流年天干为${god}，评分参考：${scoreTrend(relations, god, strength.type)}。${advice.overall}` },
+      { label: "与命局和大运", content: `${relationListText(relations.stems, 2)}<br>${relationListText(relations.branches, 3)}` },
+      { label: "事业", content: advice.career },
+      { label: "财运", content: advice.wealth },
+      { label: "感情", content: advice.love },
+      { label: "人际", content: advice.network },
+      { label: "健康", content: advice.health },
+      { label: "注意月份", content: monthRiskText(data.year, chart, pillar) },
+      { label: "方位参考", content: directionAdvice(chart, strength) },
+      { label: "神煞参考", content: `${sha}<br>神煞只作参考，仍以命局和岁运作用为主。` }
     ]);
-    document.querySelector("#luck-cycle").innerHTML = `已选流年：${data.year}年 ${renderGanZhi(pillar)}`;
-    renderFlowMonths(data.year, chart, activeLuck, pillar, currentAge, false);
+    document.querySelector("#luck-cycle").innerHTML = `当前查看流年：${data.year}年 ${renderGanZhi(pillar)}`;
     return;
   }
 
   if (type === "month") {
-    const activeLuck = data.luck || getActiveLuck(chart, currentAge || 0);
-    const yearPillar = data.yearPillar || getFlowYearPillar(data.year);
+    const activeLuck = data.luck || selectedLuck;
+    const yearPillar = data.yearPillar || getFlowYearPillar(selectedYear);
     const god = tenGod(dayStem, data.pillar.slice(0, 1));
     const relations = relationSummary(data.pillar, chart, [activeLuck?.ganZhi?.slice(1, 2), yearPillar.slice(1, 2)].filter(Boolean));
     const advice = makeAdvice(god, relations.branches, strength.type);
@@ -669,112 +820,154 @@ function renderCycleDetail(type, data, chart, currentYear, currentAge) {
       activeLuck?.ganZhi ? { label: "大运", pillar: activeLuck.ganZhi } : null,
       { label: "流年", pillar: yearPillar },
       { label: "流月", pillar: data.pillar }
-    ].filter(Boolean)).slice(0, 7).join("<br>");
-    detail.innerHTML = renderDetailHtml(`已选流月：${data.label} ${renderGanZhi(data.pillar)}`, [
-      { label: "流月干支与十神", content: `流月天干对日主为${god}，${god}代表${godMeaning(god)}。` },
-      { label: "流月天干与命局天干", content: relations.stems.join("<br>") },
-      { label: "流月地支与命局/大运/流年", content: relations.branches.join("<br>") },
-      { label: "大运流年流月作用", content: `当前大运${activeLuck?.ganZhi || "待定"}，流年${yearPillar}，流月${data.pillar}。月令短期触发流年主题，若见冲刑害破则事件感更强，若见合会则资源更容易聚合。` },
-      { label: "神煞参考", content: `${sha}<br>神煞只作参考，不单独断吉凶。` },
-      { label: "五类提示", content: `事业：${advice.career}<br>财运：${advice.wealth}<br>感情：${advice.love}<br>人际：${advice.network}<br>健康：${advice.health}<br>整体运势：${advice.overall}` }
+    ].filter(Boolean)).slice(0, 5).join("<br>");
+    detail.innerHTML = renderDetailHtml(`当前查看流月：${data.label} ${renderGanZhi(data.pillar)}（${selectedYear}年，结合${activeLuck?.ganZhi || "待定"}大运）`, [
+      { label: "流月总评", content: `流月天干为${god}。${advice.overall}` },
+      { label: "流月关系", content: `${relationListText(relations.stems, 2)}<br>${relationListText(relations.branches, 3)}` },
+      { label: "适合做什么", content: advice.career },
+      { label: "本月注意", content: `${advice.network}<br>${advice.health}` },
+      { label: "神煞参考", content: `${sha}<br>神煞只作参考，不单独定吉凶。` }
     ]);
-    document.querySelector("#luck-cycle").innerHTML = `已选流月：${renderGanZhi(data.pillar)}`;
+    document.querySelector("#luck-cycle").innerHTML = `当前查看流月：${renderGanZhi(data.pillar)}`;
   }
 }
-
-function godMeaning(god) {
-  return {
-    比肩: "自我、同辈、竞争与坚持",
-    劫财: "行动、争夺、合伙与财务分流",
-    食神: "表达、口福、创作与稳定输出",
-    伤官: "突破、表达、反规则与技术才华",
-    偏财: "机会型财富、客户、资源流动",
-    正财: "稳定收入、现实责任、经营管理",
-    七杀: "压力、挑战、执行力和风险",
-    正官: "规则、职位、名誉和约束",
-    偏印: "灵感、偏门知识、保护与不稳定资源",
-    正印: "学习、贵人、证书和稳定支持",
-    日主: "命主自身"
-  }[god] || "对应事务";
-}
-
-function scoreTrend(relations, god, strengthType) {
-  let score = 70;
-  score -= relations.branches.filter((text) => /冲|刑|害|破/.test(text)).length * 8;
-  score += relations.branches.filter((text) => /合|会/.test(text)).length * 5;
-  if (strengthType.includes("弱") && ["正印", "偏印", "比肩", "劫财"].includes(god)) score += 8;
-  if (strengthType.includes("强") && ["正官", "七杀", "正财", "偏财", "食神", "伤官"].includes(god)) score += 8;
-  if (["七杀", "伤官", "劫财"].includes(god)) score -= 3;
-  const bounded = Math.max(35, Math.min(92, score));
-  return bounded >= 78 ? `${bounded}分，偏助力` : bounded >= 60 ? `${bounded}分，平中有动` : `${bounded}分，偏压力`;
-}
-
 function setSelectedCycle(container, card) {
   container.querySelectorAll(".cycle-card").forEach((item) => item.classList.remove("is-selected"));
   card.classList.add("is-selected");
 }
 
-function renderFlowMonths(year, chart, activeLuck, yearPillar, currentAge, autoRender = true) {
+function monthIndexForYear(year) {
+  return year === baziState.currentLiuNian ? baziState.currentLiuYue : 0;
+}
+
+function cycleBadges(isCurrent, isSelected, currentLabel) {
+  const badges = [];
+  if (isCurrent) badges.push(`<small class="cycle-badge">${currentLabel}</small>`);
+  if (isSelected) badges.push(`<small class="cycle-badge cycle-badge--view">正在查看</small>`);
+  return badges.length ? `<span class="cycle-badges">${badges.join("")}</span>` : "";
+}
+
+function updateCycleStatus() {
+  if (!baziState) return;
+  const currentLuck = baziState.currentDaYun;
+  const selectedLuck = baziState.selectedDaYun;
+  const selectedYearPillar = getFlowYearPillar(baziState.selectedLiuNian);
+  const currentYearPillar = getFlowYearPillar(baziState.currentLiuNian);
+  const selectedMonth = buildFlowMonths(baziState.selectedLiuNian)[baziState.selectedLiuYue];
+  const currentMonth = buildFlowMonths(baziState.currentLiuNian)[baziState.currentLiuYue];
+  document.querySelector("#selected-luck-status").textContent = selectedLuck?.index === currentLuck?.index
+    ? `当前查看：${selectedLuck?.ganZhi || "待定"}大运（当前大运）`
+    : `当前查看：${selectedLuck?.ganZhi || "待定"}大运；真实当前：${currentLuck?.ganZhi || "待定"}大运`;
+  document.querySelector("#selected-year-status").textContent = baziState.selectedLiuNian === baziState.currentLiuNian
+    ? `当前查看：${baziState.selectedLiuNian}年${selectedYearPillar}（当前流年）`
+    : `当前查看：${baziState.selectedLiuNian}年${selectedYearPillar}；真实当前：${baziState.currentLiuNian}年${currentYearPillar}`;
+  document.querySelector("#selected-month-status").textContent =
+    `当前查看：${selectedMonth?.label || ""}${selectedMonth?.pillar || ""}${baziState.selectedLiuNian === baziState.currentLiuNian && baziState.selectedLiuYue === baziState.currentLiuYue ? "（当前流月）" : `；真实当前：${currentMonth?.label || ""}${currentMonth?.pillar || ""}`}`;
+}
+
+function scrollSelectedIntoView() {
+  ["#luck-track", "#year-track", "#month-track"].forEach((selector) => {
+    const track = document.querySelector(selector);
+    const selected = track?.querySelector(".is-selected");
+    if (!track || !selected) return;
+    const targetLeft = selected.offsetLeft - (track.clientWidth - selected.clientWidth) / 2;
+    track.scrollLeft = Math.max(0, targetLeft);
+  });
+}
+
+function renderFlowMonths(year, chart, activeLuck, yearPillar, currentAge, autoRender = true, shouldScroll = true) {
   const dayStem = chart.stems[2];
   const monthTrack = document.querySelector("#month-track");
   const months = buildFlowMonths(year);
-  const now = new Date();
-  const defaultIndex = year === now.getFullYear() ? mod(now.getMonth() - 1, 12) : 0;
+  const selectedMonthIndex = baziState?.selectedLiuYue ?? (year === new Date().getFullYear() ? mod(new Date().getMonth() - 1, 12) : 0);
 
   monthTrack.innerHTML = months.map((month, index) => {
-    const selected = index === defaultIndex ? " is-selected" : "";
-    return `<button class="cycle-card${selected}" type="button" data-cycle="month" data-year="${year}" data-month="${index}"><span>${month.label}</span><strong>${renderGanZhi(month.pillar)}</strong><em>${tenGod(dayStem, month.stem)}</em></button>`;
+    const isCurrent = baziState && year === baziState.currentLiuNian && index === baziState.currentLiuYue;
+    const isSelected = index === selectedMonthIndex;
+    const selected = `${isCurrent ? " is-current is-active" : ""}${isSelected ? " is-selected" : ""}`;
+    return `<button class="cycle-card${selected}" type="button" data-cycle="month" data-year="${year}" data-month="${index}"><span>${month.label}</span>${cycleBadges(isCurrent, isSelected, "当前流月")}<strong>${renderGanZhi(month.pillar)}</strong><em>${tenGod(dayStem, month.stem)}</em></button>`;
   }).join("");
 
   monthTrack.querySelectorAll("[data-cycle='month']").forEach((card) => {
     card.addEventListener("click", () => {
-      setSelectedCycle(monthTrack, card);
-      const month = months[Number(card.dataset.month)];
-      renderCycleDetail("month", { ...month, luck: activeLuck, yearPillar }, chart, year, currentAge);
+      baziState.selectedLiuYue = Number(card.dataset.month);
+      refreshSelectionView("month", true);
     });
   });
 
   if (autoRender) {
-    renderCycleDetail("month", { ...months[defaultIndex], luck: activeLuck, yearPillar }, chart, year, currentAge);
+    const selectedMonth = months[selectedMonthIndex] || months[0];
+    renderCycleDetail("month", { ...selectedMonth, luck: activeLuck, yearPillar, year }, chart, year, currentAge);
   }
+  if (shouldScroll) scrollSelectedIntoView();
 }
 
-function bindCycleInteractions(chart, currentYear, currentAge) {
+function bindCycleInteractions(chart, currentYear, currentAge, birthYear) {
   const luckTrack = document.querySelector("#luck-track");
   const yearTrack = document.querySelector("#year-track");
 
   luckTrack.querySelectorAll("[data-cycle='luck']").forEach((card) => {
     card.addEventListener("click", () => {
-      setSelectedCycle(luckTrack, card);
       const item = chart.daYun.find((luck) => String(luck.index) === card.dataset.index);
-      if (item) renderCycleDetail("luck", item, chart, currentYear, currentAge);
+      if (!item) return;
+      baziState.selectedDaYun = item;
+      refreshSelectionView("luck", true);
     });
   });
 
   yearTrack.querySelectorAll("[data-cycle='year']").forEach((card) => {
     card.addEventListener("click", () => {
-      setSelectedCycle(yearTrack, card);
-      renderCycleDetail("year", { year: Number(card.dataset.year), luck: getActiveLuck(chart, currentAge) }, chart, currentYear, currentAge);
+      baziState.selectedLiuNian = Number(card.dataset.year);
+      baziState.selectedLiuYue = monthIndexForYear(baziState.selectedLiuNian);
+      refreshSelectionView("year", true);
     });
   });
 }
 
-function renderCycles(currentAge, currentYear, chart) {
+function renderCycles(currentAge, currentYear, chart, birthYear, autoRender = true, shouldScroll = true) {
   const dayStem = chart.stems[2];
-  document.querySelector("#luck-track").innerHTML = chart.daYun.filter((item) => item.index > 0).slice(0, 9).map((item) => {
-    const active = currentAge >= item.startAge && currentAge <= item.endAge ? " is-active is-selected" : "";
-    return `<button class="cycle-card${active}" type="button" data-cycle="luck" data-index="${item.index}"><span>${item.startYear}<br>${item.startAge}-${item.endAge}岁</span><strong>${renderGanZhi(item.ganZhi)}</strong><em>${tenGod(dayStem, item.ganZhi.slice(0, 1))}</em></button>`;
-  }).join("");
+  const selectedLuckIndex = baziState?.selectedDaYun?.index;
+  const currentLuckIndex = baziState?.currentDaYun?.index;
+  document.querySelector("#luck-track").innerHTML = chart.daYun
+    .filter((item) => item.index > 0 && item.startAge <= 110)
+    .map((item) => {
+      const isCurrent = item.index === currentLuckIndex;
+      const isSelected = item.index === selectedLuckIndex;
+      const active = `${isCurrent ? " is-current is-active" : ""}${isSelected ? " is-selected" : ""}`;
+      return `<button class="cycle-card${active}" type="button" data-cycle="luck" data-index="${item.index}"><span>第${item.index}步<br>${item.startYear}-${item.endYear}<br>${item.startAge}-${item.endAge}岁</span>${cycleBadges(isCurrent, isSelected, "当前大运")}<strong>${renderGanZhi(item.ganZhi)}</strong><em>${tenGod(dayStem, item.ganZhi.slice(0, 1))}</em></button>`;
+    }).join("");
 
-  document.querySelector("#year-track").innerHTML = Array.from({ length: 10 }, (_, index) => {
-    const year = currentYear - 4 + index;
+  document.querySelector("#year-track").innerHTML = Array.from({ length: 101 }, (_, index) => {
+    const year = birthYear + index;
     const p = getFlowYearPillar(year);
-    const active = year === currentYear ? " is-active is-selected" : "";
-    return `<button class="cycle-card${active}" type="button" data-cycle="year" data-year="${year}"><span>${year}</span><strong>${renderGanZhi(p)}</strong><em>${tenGod(dayStem, p.slice(0, 1))}</em></button>`;
+    const isCurrent = year === baziState.currentLiuNian;
+    const isSelected = year === baziState.selectedLiuNian;
+    const active = `${isCurrent ? " is-current is-active" : ""}${isSelected ? " is-selected" : ""}`;
+    return `<button class="cycle-card${active}" type="button" data-cycle="year" data-year="${year}"><span>${year}</span>${cycleBadges(isCurrent, isSelected, "当前流年")}<strong>${renderGanZhi(p)}</strong><em>${tenGod(dayStem, p.slice(0, 1))}</em></button>`;
   }).join("");
 
-  bindCycleInteractions(chart, currentYear, currentAge);
-  renderFlowMonths(currentYear, chart, getActiveLuck(chart, currentAge), getFlowYearPillar(currentYear), currentAge);
+  bindCycleInteractions(chart, currentYear, currentAge, birthYear);
+  const selectedYearPillar = getFlowYearPillar(baziState.selectedLiuNian);
+  renderFlowMonths(baziState.selectedLiuNian, chart, baziState.selectedDaYun, selectedYearPillar, currentAge, autoRender, false);
+  updateCycleStatus();
+  if (shouldScroll) scrollSelectedIntoView();
+}
+
+function refreshSelectionView(detailType = "month", shouldScroll = true) {
+  if (!baziState) return;
+  const { chart, currentAge, currentLiuNian, birthYear, calendarType, dateValue, timeValue, birthDate, strength, shenSha, currentDaYun } = baziState;
+  updateProfessionalRows(chart, baziState.selectedLiuNian, baziState.selectedDaYun);
+  renderCycles(currentAge, currentLiuNian, chart, birthYear, false, shouldScroll);
+  renderOverview({ chart, calendarType, dateValue, timeValue, birthDate, currentYear: currentLiuNian, currentAge, currentLuck: currentDaYun, strength, shenSha, state: baziState });
+
+  if (detailType === "luck") {
+    renderCycleDetail("luck", baziState.selectedDaYun, chart, baziState.selectedLiuNian, currentAge);
+  } else if (detailType === "year") {
+    renderCycleDetail("year", { year: baziState.selectedLiuNian, luck: baziState.selectedDaYun }, chart, baziState.selectedLiuNian, baziState.selectedLiuNian - birthYear);
+  } else {
+    const month = buildFlowMonths(baziState.selectedLiuNian)[baziState.selectedLiuYue];
+    renderCycleDetail("month", { ...month, luck: baziState.selectedDaYun, yearPillar: getFlowYearPillar(baziState.selectedLiuNian), year: baziState.selectedLiuNian }, chart, baziState.selectedLiuNian, currentAge);
+  }
 }
 
 function setElementBars(score) {
@@ -791,30 +984,186 @@ function setElementBars(score) {
   });
 }
 
+function daysInSolarMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
+function daysInLunarMonth(year, month, leapMode = "normal") {
+  try {
+    const lunarMonth = leapMode === "leap" ? -month : month;
+    return window.LunarYear?.fromYear(year)?.getMonth(lunarMonth)?.getDayCount?.() || 30;
+  } catch {
+    return 30;
+  }
+}
+
+function selectorDateParts() {
+  return {
+    year: Number(document.querySelector("#birth-year")?.value || 1996),
+    month: Number(document.querySelector("#birth-month")?.value || 8),
+    day: Number(document.querySelector("#birth-day")?.value || 18)
+  };
+}
+
+function syncBirthDateFromSelects() {
+  const { year, month, day } = selectorDateParts();
+  document.querySelector("#birth-date").value = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function updateBirthDayOptions() {
+  const calendarType = document.querySelector("#calendar-type").value;
+  const { year, month, day } = selectorDateParts();
+  const leapMode = document.querySelector("#lunar-leap")?.value || "normal";
+  const maxDay = calendarType === "农历" ? daysInLunarMonth(year, month, leapMode) : daysInSolarMonth(year, month);
+  const daySelect = document.querySelector("#birth-day");
+  const selected = Math.min(day || 1, maxDay);
+  daySelect.innerHTML = Array.from({ length: maxDay }, (_, index) => {
+    const value = index + 1;
+    return `<option value="${value}">${value}日</option>`;
+  }).join("");
+  daySelect.value = String(selected);
+  syncBirthDateFromSelects();
+}
+
+function updateLeapMonthOptions() {
+  const calendarType = document.querySelector("#calendar-type").value;
+  const row = document.querySelector("#lunar-leap-row");
+  const select = document.querySelector("#lunar-leap");
+  const { year, month } = selectorDateParts();
+  document.querySelector("#birth-date-label").textContent = `${calendarType}出生日期`;
+
+  if (calendarType !== "农历") {
+    row.hidden = true;
+    select.innerHTML = '<option value="normal">普通月</option>';
+    select.value = "normal";
+    updateBirthDayOptions();
+    return 0;
+  }
+
+  const leapMonth = window.LunarYear?.fromYear(year)?.getLeapMonth?.() || 0;
+  if (!leapMonth || leapMonth !== month) {
+    row.hidden = true;
+    select.innerHTML = '<option value="normal">普通月</option>';
+    select.value = "normal";
+    updateBirthDayOptions();
+    return leapMonth;
+  }
+
+  row.hidden = false;
+  const oldValue = select.value || "normal";
+  select.innerHTML = `<option value="normal">普通${month}月</option><option value="leap">闰${month}月</option>`;
+  select.value = oldValue === "leap" ? "leap" : "normal";
+  updateBirthDayOptions();
+  return leapMonth;
+}
+
+function updateTimeMode() {
+  document.querySelector("#time-input-mode").value = "shichen";
+  document.querySelector("#birth-time").value = document.querySelector("#birth-shichen").value;
+}
+
+function initDateSelectors() {
+  const { year, month, day } = parseDateParts(document.querySelector("#birth-date").value);
+  const thisYear = new Date().getFullYear();
+  const yearSelect = document.querySelector("#birth-year");
+  const monthSelect = document.querySelector("#birth-month");
+  yearSelect.innerHTML = Array.from({ length: thisYear - 1899 }, (_, index) => {
+    const value = 1900 + index;
+    return `<option value="${value}">${value}年</option>`;
+  }).join("");
+  monthSelect.innerHTML = Array.from({ length: 12 }, (_, index) => {
+    const value = index + 1;
+    return `<option value="${value}">${value}月</option>`;
+  }).join("");
+  yearSelect.value = String(year);
+  monthSelect.value = String(month);
+  updateBirthDayOptions();
+  document.querySelector("#birth-day").value = String(day);
+  syncBirthDateFromSelects();
+  updateTimeMode();
+  updateLeapMonthOptions();
+}
+
+function renderOverview({ chart, calendarType, dateValue, timeValue, birthDate, currentYear, currentAge, currentLuck, strength, shenSha, state = baziState }) {
+  const pillars = chart.pillars.join(" ");
+  const dayStem = chart.stems[2];
+  const viewedLuck = state?.selectedDaYun || currentLuck;
+  const viewedYear = state?.selectedLiuNian || currentYear;
+  const viewedMonth = buildFlowMonths(viewedYear)[state?.selectedLiuYue ?? mod(new Date().getMonth() - 1, 12)];
+  const flowYear = getFlowYearPillar(viewedYear);
+  const currentLuckText = currentLuck?.ganZhi || "待定";
+  const viewedLuckText = viewedLuck?.ganZhi || "待定";
+  const relation = relationSummary(flowYear, chart, viewedLuck?.ganZhi ? [viewedLuck.ganZhi.slice(1, 2)] : []);
+  const direction = directionAdvice(chart, strength);
+  const viewHint = viewedLuck?.index === currentLuck?.index && viewedYear === currentYear
+    ? "当前查看与真实当前一致。"
+    : `当前查看：${viewedLuckText}大运、${viewedYear}年${flowYear}；真实当前：${currentLuckText}大运、${currentYear}年${getFlowYearPillar(currentYear)}。`;
+  document.querySelector("#summary").innerHTML = `
+    <div class="summary-list">
+      <div><b>基础排盘摘要</b><br>出生历法：${calendarType}；输入日期：${dateValue}；实际用于排盘：公历 ${formatDate(birthDate)} ${timeValue}。四柱为 ${pillars}，日主为${dayStem}${stemElement[dayStem]}。${viewHint}</div>
+      <div><b>日主强弱判断</b><br>${strength.type}。${strength.reasons.slice(0, 3).join(" ")}喜用倾向：${strength.useful}</div>
+      <div><b>命局格局简析</b><br>此盘以月令${chart.branches[1]}为季节核心，五行气势先看月令，再看通根、印比帮身与财官食伤的克泄耗。整体不只按数量判断，而是看能量是否流通、日主能否承载。</div>
+      <div><b>当前查看的岁运</b><br>查看大运：${viewedLuckText}；查看流年：${flowYear}；查看流月：${viewedMonth.pillar}。流年与命局关系：${relation.branches.slice(0, 2).join(" ")}</div>
+      <div><b>神煞和方位参考</b><br>${shenSha.slice(0, 3).join("<br>")}<br>${direction}</div>
+    </div>`;
+}
 function updateReport(event) {
   event?.preventDefault?.();
+  const shouldScrollToResult = event?.type === "submit";
 
   try {
+    updateTimeMode();
+    updateLeapMonthOptions();
+    syncBirthDateFromSelects();
+
     const dateValue = document.querySelector("#birth-date").value;
-    const timeValue = document.querySelector("#birth-time").value || "00:00";
+    const timeValue = document.querySelector("#birth-time").value || "23:30";
     const calendarType = document.querySelector("#calendar-type").value;
-    const isLeapMonth = document.querySelector("#lunar-leap").checked;
+    const leapMonth = window.LunarYear?.fromYear(selectorDateParts().year)?.getLeapMonth?.() || 0;
+    const lunarLeapMode = document.querySelector("#lunar-leap").value;
+    const ziDayMode = document.querySelector("#zi-day-mode").value;
     const province = selectedText("#birth-province") || "北京市";
     const city = selectedText("#birth-city") || "北京市";
     const area = selectedText("#birth-area") || "东城区";
     const placeMode = document.querySelector("#birth-place-mode").value;
     const solarTime = document.querySelector("#solar-time").checked;
     const gender = document.querySelector("#gender").value;
-    const birthDate = getBirthDate(dateValue, timeValue, calendarType, isLeapMonth);
+    const birthDate = getBirthDate(dateValue, timeValue, calendarType, lunarLeapMode);
     const today = new Date();
-    const currentAge = calculateAge(birthDate, today);
+    const ageInfo = getAgeInfo(birthDate, today);
+    const currentAge = ageInfo.fullAge;
     const currentYear = today.getFullYear();
-    const chart = buildAccurateChart(birthDate, gender);
+    const currentMonthIndex = mod(today.getMonth() - 1, 12);
+    const chart = buildAccurateChart(birthDate, gender, ziDayMode);
+    chart.daYun.forEach((item) => { item.current = item.index > 0 && currentAge >= item.startAge && currentAge <= item.endAge; });
     const pillars = chart.pillars;
     const dayStem = chart.stems[2];
     const strength = analyzeStrength(chart);
     const natalRelations = natalRelationSummary(chart);
-    const shenSha = getShenSha(chart);
+    const currentLuck = getActiveLuck(chart, currentAge);
+    const shenSha = getShenSha(chart, [
+      currentLuck?.ganZhi ? { label: "大运", pillar: currentLuck.ganZhi } : null,
+      { label: "流年", pillar: getFlowYearPillar(currentYear) }
+    ].filter(Boolean));
+
+    baziState = {
+      chart,
+      birthYear: birthDate.getFullYear(),
+      currentAge,
+      currentDaYun: currentLuck,
+      selectedDaYun: currentLuck,
+      currentLiuNian: currentYear,
+      selectedLiuNian: currentYear,
+      currentLiuYue: currentMonthIndex,
+      selectedLiuYue: currentMonthIndex,
+      calendarType,
+      dateValue,
+      timeValue,
+      birthDate,
+      ageInfo,
+      strength,
+      shenSha
+    };
 
     document.querySelector("#year-pillar").innerHTML = renderGanZhi(pillars[0]);
     document.querySelector("#month-pillar").innerHTML = renderGanZhi(pillars[1]);
@@ -822,35 +1171,57 @@ function updateReport(event) {
     document.querySelector("#hour-pillar").innerHTML = renderGanZhi(pillars[3]);
     document.querySelector("#report-title").textContent = `${city}专业细盘`;
     document.querySelector("#meta-date").textContent = calendarType === "农历"
-      ? `农历${isLeapMonth ? "闰" : ""} ${dateValue} ${timeValue} · 折合公历 ${formatDate(birthDate)}`
-      : `公历 ${dateValue} ${timeValue}`;
+      ? `农历${lunarLeapMode === "leap" ? "闰" : ""}${dateValue} · ${selectedText("#birth-shichen")}`
+      : `公历 ${dateValue} · ${selectedText("#birth-shichen")}`;
+    document.querySelector("#meta-used-solar").textContent = `实际用于排盘：公历 ${formatDate(birthDate)} ${timeValue} · ${ziDayMode === "23" ? "23点换日" : "0点换日"}`;
     document.querySelector("#meta-place").textContent = `${province} ${city} ${area} · 中国标准时间 UTC+8`;
-    document.querySelector("#meta-start-luck").textContent = `出生后 ${chart.yun.startYear} 年 ${chart.yun.startMonth} 月 ${chart.yun.startDay} 天 ${chart.yun.startHour} 小时起运，${chart.yun.forward ? "顺行" : "逆行"}`;
-    document.querySelector("#meta-current").textContent = `${currentYear} 年 · ${currentAge} 岁 · 当前流年：${getFlowYearPillar(currentYear)}`;
+    document.querySelector("#meta-start-luck").textContent = `出生后 ${chart.yun.startYear} 年 ${chart.yun.startMonth} 月 ${chart.yun.startDay} 天 ${chart.yun.startHour} 小时起运，实际起运 ${chart.yun.startSolar}，${chart.yun.forward ? "顺行" : "逆行"}`;
+    document.querySelector("#meta-current").textContent = `${currentYear} 年 · 周岁 ${currentAge} 岁（按 ${ageInfo.todayText} 计算，${ageInfo.birthdayStatus}）· 当前流年：${getFlowYearPillar(currentYear)}`;
 
-    updateProfessionalRows(chart, currentYear, currentAge);
-    renderCycles(currentAge, currentYear, chart);
     setElementBars(countElements(pillars));
-
     document.querySelector("#relation-title").textContent = `${dayStem}日主，月令${chart.branches[1]}`;
-    document.querySelector("#relation-copy").innerHTML = `算法：年柱按立春，月柱按节气月令，日柱按干支日，时柱按日干加时辰。<br>天干：${natalRelations.stems.slice(0, 3).join("；")}<br>地支：${natalRelations.branches.slice(0, 3).join("；")}`;
+    document.querySelector("#relation-copy").innerHTML = `年柱按立春，月柱按节气月令，日柱按干支日，时柱按日干加时辰。<br>天干：${natalRelations.stems.slice(0, 2).join("；")}<br>地支：${natalRelations.branches.slice(0, 2).join("；")}`;
     document.querySelector("#ten-gods").textContent = chart.tenGods.join(" · ");
     document.querySelector("#shen-sha").textContent = shenSha.slice(0, 4).map((item) => item.split("：")[0]).join(" · ");
     document.querySelector("#strength-title").textContent = `日主强弱：${strength.type}`;
-    document.querySelector("#strength-copy").innerHTML = `判断原因：${strength.reasons.join(" ")}<br>喜用倾向：${strength.useful}`;
-    document.querySelector("#luck-cycle").textContent = `当前大运：${document.querySelector("#luck-track .is-active strong")?.textContent || "待定"}`;
-    document.querySelector("#luck-copy").textContent = `当前年份 ${currentYear} 年，当前年龄 ${currentAge} 岁，系统按${chart.yun.forward ? "顺行" : "逆行"}排运，结合 ${getFlowYearPillar(currentYear)} 流年做专项解读。`;
-    document.querySelector("#summary").textContent = `当前排盘已接入成熟历法库，不再使用随机模拟数据或手写近似节气表。日主为${dayStem}${stemElement[dayStem]}，强弱判断为${strength.type}。`;
-    document.querySelector("#place-note").textContent = `出生日期类型：${calendarType}。出生地选择：${placeMode === "按出生地" ? `${province}${city}${area}` : "北京默认基准"}。${solarTime ? "已启用真太阳时提示，后续会接入经纬度校正。" : "当前按中国标准时间 UTC+8 生成基础分析。"}`;
+    document.querySelector("#strength-copy").innerHTML = `判断原因：${strength.reasons.slice(0, 4).join(" ")}<br>喜用倾向：${strength.useful}`;
+    document.querySelector("#luck-copy").textContent = `当前年份 ${currentYear} 年，当前周岁 ${currentAge} 岁（${ageInfo.birthdayStatus}）。${chart.yun.directionReason}起运按出生时刻到${chart.yun.forward ? "下一个节" : "上一个节"}的时间差折算。`;
+    document.querySelector("#place-note").textContent = `出生日期类型：${calendarType}。${calendarType === "农历" ? (leapMonth ? `该农历年闰${leapMonth}月；` : "该农历年无闰月；") : ""}出生地选择：${placeMode === "按出生地" ? `${province}${city}${area}` : "北京默认基准"}。${solarTime ? "已启用真太阳时提示，后续可接入经纬度校正。" : "当前按中国标准时间 UTC+8 生成基础分析。"}`;
+
+    refreshSelectionView("month", true);
+    if (shouldScrollToResult) {
+      document.querySelector(".report-panel")?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    }
   } catch (error) {
-    document.querySelector("#summary").textContent = "出生信息无法排盘，请检查日期、时间、农历闰月是否填写正确。";
+    document.querySelector("#summary").textContent = "出生信息无法排盘，请检查日期、历法和农历闰月是否选择正确。";
     document.querySelector("#cycle-detail").textContent = error.message || "排盘失败。";
   }
 }
 
-document.querySelector("#calendar-type").addEventListener("change", (event) => {
-  document.querySelector("#birth-date-label").textContent = `${event.target.value}出生日期`;
-  document.querySelector("#lunar-leap-row").hidden = event.target.value !== "农历";
+document.querySelector("#reset-luck")?.addEventListener("click", () => {
+  if (!baziState) return;
+  baziState.selectedDaYun = baziState.currentDaYun;
+  refreshSelectionView("luck", true);
+});
+
+document.querySelector("#reset-year")?.addEventListener("click", () => {
+  if (!baziState) return;
+  baziState.selectedLiuNian = baziState.currentLiuNian;
+  baziState.selectedLiuYue = baziState.currentLiuYue;
+  refreshSelectionView("year", true);
+});
+
+document.querySelector("#prev-decade")?.addEventListener("click", () => {
+  document.querySelector("#year-track")?.scrollBy?.({ left: -1160, behavior: "smooth" });
+});
+
+document.querySelector("#next-decade")?.addEventListener("click", () => {
+  document.querySelector("#year-track")?.scrollBy?.({ left: 1160, behavior: "smooth" });
+});
+
+document.querySelector("#calendar-type").addEventListener("change", () => {
+  updateLeapMonthOptions();
+  updateReport();
 });
 
 document.querySelector("#consult-button").addEventListener("click", () => {
@@ -869,17 +1240,21 @@ document.querySelector("#birth-city").addEventListener("change", () => {
   updateAreas();
   updateReport();
 });
-document.querySelector("#birth-area").addEventListener("change", () => {
-  updateReport();
-});
+document.querySelector("#birth-area").addEventListener("change", updateReport);
 document.querySelector("#bazi-form").addEventListener("submit", updateReport);
-["#gender", "#calendar-type", "#lunar-leap", "#birth-date", "#birth-time", "#birth-place-mode", "#solar-time"].forEach((selector) => {
-  document.querySelector(selector).addEventListener("change", updateReport);
+["#gender", "#lunar-leap", "#birth-year", "#birth-month", "#birth-day", "#birth-shichen", "#zi-day-mode", "#birth-place-mode", "#solar-time"].forEach((selector) => {
+  document.querySelector(selector)?.addEventListener("change", () => {
+    if (["#birth-year", "#birth-month", "#lunar-leap"].includes(selector)) updateLeapMonthOptions();
+    else if (selector === "#birth-day") syncBirthDateFromSelects();
+    else if (selector === "#birth-shichen") updateTimeMode();
+    updateReport();
+  });
 });
 
 async function bootstrap() {
+  initDateSelectors();
   await loadChinaAreas();
-  fillSelect(document.querySelector("#birth-province"), chinaPlaces, (province) => province.name === "北京市" ? "北京市，默认省份" : province.name);
+  fillSelect(document.querySelector("#birth-province"), chinaPlaces, (province) => province.name);
   updateCities();
   updateReport();
 }

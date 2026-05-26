@@ -327,6 +327,10 @@ select {
   font: inherit;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .toggle {
   display: flex;
   align-items: center;
@@ -814,5 +818,204 @@ textarea {
 
   .cycle-label {
     font-size: 1rem;
+  }
+}
+
+
+.element-legend {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0 14px;
+}
+
+.element-legend span {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 4px 9px;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.gz-char small {
+  display: none !important;
+}
+
+.gz-char b {
+  font-size: 1.06em;
+}
+
+#day-pillar {
+  position: relative;
+  text-shadow: 0 0 16px rgba(68, 244, 255, 0.55);
+}
+
+#day-pillar::after {
+  content: "日主";
+  display: block;
+  margin-top: 4px;
+  color: var(--amber);
+  font-size: 0.68rem;
+  letter-spacing: 0;
+}
+
+.mini-gan {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 2px 4px 2px 0;
+  padding: 2px 5px;
+  border: 1px solid rgba(68, 244, 255, 0.14);
+  background: rgba(6, 18, 32, 0.72);
+  white-space: nowrap;
+}
+
+
+.date-selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.date-selects select {
+  width: auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+#birth-year {
+  flex: 1 1 110px;
+  min-width: 110px;
+}
+
+#birth-month,
+#birth-day {
+  flex: 1 1 80px;
+  min-width: 80px;
+}
+
+.cycle-track {
+  grid-auto-columns: minmax(104px, 126px);
+}
+
+.cycle-card {
+  min-width: 104px;
+}
+
+.detail-sections {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.detail-item {
+  border: 1px solid rgba(68, 244, 255, 0.16);
+  background: rgba(5, 14, 26, 0.52);
+  padding: 12px;
+}
+
+.detail-item b {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--amber);
+}
+
+.summary-list {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 0;
+}
+
+.summary-list div {
+  border: 1px solid rgba(68, 244, 255, 0.16);
+  background: rgba(5, 14, 26, 0.46);
+  padding: 12px;
+}
+
+.summary-list b {
+  color: var(--amber);
+}
+
+@media (max-width: 620px) {
+  .date-selects {
+    gap: 8px;
+  }
+
+  .cycle-block {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+}
+
+
+.cycle-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cycle-controls > div {
+  min-height: 62px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(68, 244, 255, 0.18);
+  background: rgba(5, 14, 26, 0.62);
+  padding: 10px;
+}
+
+.cycle-controls strong {
+  color: var(--amber);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.mini-button {
+  min-height: 32px;
+  border: 1px solid rgba(68, 244, 255, 0.32);
+  border-radius: 4px;
+  background: rgba(68, 244, 255, 0.08);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cycle-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+
+.cycle-badge {
+  display: inline-grid;
+  place-items: center;
+  min-height: 20px;
+  padding: 0 6px;
+  border: 1px solid rgba(68, 244, 255, 0.35);
+  border-radius: 999px;
+  color: var(--cyan) !important;
+  font-size: 0.68rem !important;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.cycle-badge--view {
+  border-color: rgba(255, 209, 102, 0.55);
+  color: var(--amber) !important;
+}
+
+.cycle-card.is-current {
+  box-shadow: inset 0 0 0 1px rgba(68, 244, 255, 0.38);
+}
+
+@media (max-width: 860px) {
+  .cycle-controls {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>玄策 AI 后台</title>
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <main class="admin-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span>玄策 AI</span>
+          <strong>运营后台</strong>
+        </div>
+        <nav class="nav" aria-label="后台导航">
+          <button class="nav__item is-active" data-view="dashboard">总览</button>
+          <button class="nav__item" data-view="users">用户</button>
+          <button class="nav__item" data-view="orders">订单</button>
+          <button class="nav__item" data-view="plans">会员套餐</button>
+          <button class="nav__item" data-view="points">积分包</button>
+          <button class="nav__item" data-view="analysis">分析记录</button>
+          <button class="nav__item" data-view="prompts">提示词</button>
+          <button class="nav__item" data-view="security">安全</button>
+        </nav>
+      </aside>
+
+      <section class="main-panel">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Admin Console</p>
+            <h1 id="view-title">总览</h1>
+          </div>
+          <div class="topbar__actions">
+            <span id="api-status">API: 未连接</span>
+            <button id="refresh-button" type="button">刷新</button>
+            <button id="logout-button" type="button" hidden>退出</button>
+          </div>
+        </header>
+
+        <section class="login-panel" id="login-panel">
+          <form id="login-form" class="login-box">
+            <p class="eyebrow">Login</p>
+            <h2>管理员登录</h2>
+            <label>
+              <span>邮箱</span>
+              <input id="admin-email" type="email" value="admin@yan-ce-ai.local" autocomplete="username" required />
+            </label>
+            <label>
+              <span>密码</span>
+              <input id="admin-password" type="password" value="ChangeMe123!" autocomplete="current-password" required />
+            </label>
+            <button type="submit">登录后台</button>
+            <p id="login-message"></p>
+          </form>
+        </section>
+
+        <section class="content" id="content" hidden>
+          <section class="view is-active" data-view-panel="dashboard">
+            <div class="metrics-grid" id="metrics-grid"></div>
+            <div class="section-grid">
+              <article class="panel">
+                <div class="panel__head">
+                  <h2>今日分析波形</h2>
+                  <span>按小时</span>
+                </div>
+                <div class="bars" id="hourly-bars"></div>
+              </article>
+              <article class="panel">
+                <div class="panel__head">
+                  <h2>热门提问类型</h2>
+                  <span>实时统计</span>
+                </div>
+                <div id="hot-types" class="list"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="view" data-view-panel="users">
+            <div class="toolbar">
+              <input id="user-keyword" placeholder="搜索昵称、openid、手机号" />
+              <button data-action="load-users" type="button">查询</button>
+            </div>
+            <div class="table-wrap"><table id="users-table"></table></div>
+          </section>
+
+          <section class="view" data-view-panel="orders">
+            <div class="toolbar">
+              <select id="order-status">
+                <option value="">全部状态</option>
+                <option value="pending">待支付</option>
+                <option value="paid">已支付</option>
+                <option value="failed">支付失败</option>
+                <option value="refunded">已退款</option>
+              </select>
+              <select id="order-type">
+                <option value="">全部类型</option>
+                <option value="membership">会员</option>
+                <option value="points">积分</option>
+              </select>
+              <button data-action="load-orders" type="button">筛选</button>
+            </div>
+            <div class="table-wrap"><table id="orders-table"></table></div>
+          </section>
+
+          <section class="view" data-view-panel="plans">
+            <div class="split-layout">
+              <form id="plan-form" class="edit-form">
+                <h2>会员套餐配置</h2>
+                <input name="id" type="hidden" />
+                <label><span>套餐名称</span><input name="name" required /></label>
+                <label><span>价格</span><input name="price" required /></label>
+                <label><span>有效期天数</span><input name="durationDays" type="number" required /></label>
+                <label><span>分析次数</span><input name="analysisLimit" type="number" value="0" /></label>
+                <label class="inline"><input name="unlimited" type="checkbox" /> 不限次数</label>
+                <label><span>描述</span><textarea name="description" rows="3"></textarea></label>
+                <label><span>排序</span><input name="sortOrder" type="number" value="0" /></label>
+                <label class="inline"><input name="enabled" type="checkbox" checked /> 启用</label>
+                <button type="submit">保存套餐</button>
+                <button type="button" data-action="reset-plan">新建</button>
+              </form>
+              <div class="table-wrap"><table id="plans-table"></table></div>
+            </div>
+          </section>
+
+          <section class="view" data-view-panel="points">
+            <div class="split-layout">
+              <form id="package-form" class="edit-form">
+                <h2>积分包配置</h2>
+                <input name="id" type="hidden" />
+                <label><span>积分包名称</span><input name="name" required /></label>
+                <label><span>价格</span><input name="price" required /></label>
+                <label><span>基础积分</span><input name="points" type="number" required /></label>
+                <label><span>赠送积分</span><input name="bonusPoints" type="number" value="0" /></label>
+                <label><span>描述</span><textarea name="description" rows="3"></textarea></label>
+                <label><span>排序</span><input name="sortOrder" type="number" value="0" /></label>
+                <label class="inline"><input name="enabled" type="checkbox" checked /> 启用</label>
+                <button type="submit">保存积分包</button>
+                <button type="button" data-action="reset-package">新建</button>
+              </form>
+              <div class="table-wrap"><table id="packages-table"></table></div>
+            </div>
+          </section>
+
+          <section class="view" data-view-panel="analysis">
+            <div class="table-wrap"><table id="analysis-table"></table></div>
+          </section>
+
+          <section class="view" data-view-panel="prompts">
+            <div class="section-grid">
+              <article class="panel">
+                <div class="panel__head">
+                  <h2>提示词版本</h2>
+                  <button data-action="load-prompts" type="button">刷新</button>
+                </div>
+                <form id="prompt-form" class="prompt-form">
+                  <input name="baseVersionId" type="hidden" />
+                  <p id="prompt-base-note" class="form-message"></p>
+                  <label>
+                    <span>版本标题</span>
+                    <input name="title" value="八字分析系统提示词" required />
+                  </label>
+                  <label>
+                    <span>提示词内容</span>
+                    <textarea name="content" rows="8" placeholder="这里写给 AI 的系统提示词，例如：你是一名专业八字命理分析师，必须基于四柱、大运、流年、流月进行结构化分析……" required></textarea>
+                  </label>
+                  <label>
+                    <span>修改原因</span>
+                    <input name="changeReason" placeholder="例如：补充流月分析规则" />
+                  </label>
+                  <label class="inline"><input name="activate" type="checkbox" checked /> 保存后立即设为生效版本</label>
+                  <div class="form-actions">
+                    <button type="submit">保存提示词版本</button>
+                    <button type="button" data-action="reset-prompt">清空</button>
+                  </div>
+                  <p id="prompt-message" class="form-message"></p>
+                </form>
+                <div class="table-wrap"><table id="prompts-table"></table></div>
+              </article>
+              <article class="panel">
+                <div class="panel__head">
+                  <h2>优化建议</h2>
+                  <button data-action="generate-suggestions" type="button">生成建议</button>
+                </div>
+                <div id="suggestions-list" class="list"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="view" data-view-panel="security">
+            <div class="section-grid">
+              <article class="panel">
+                <div class="panel__head">
+                  <h2>安全事件</h2>
+                  <span>疑似攻击与限流</span>
+                </div>
+                <div class="table-wrap"><table id="security-table"></table></div>
+              </article>
+              <article class="panel">
+                <div class="panel__head">
+                  <h2>请求日志</h2>
+                  <span>最近请求</span>
+                </div>
+                <div class="table-wrap"><table id="logs-table"></table></div>
+              </article>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="admin.js?v=20260525"></script>
+  </body>
+</html>
