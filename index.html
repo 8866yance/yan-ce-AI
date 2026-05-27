@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>玄核 Bazi AI | AI 八字命理分析</title>
-    <link rel="stylesheet" href="styles.css?v=20260527-table1" />
+    <link rel="stylesheet" href="styles.css?v=20260527-polish1" />
   </head>
   <body>
     <main class="shell">
@@ -146,6 +146,13 @@
             </div>
           </div>
 
+          <nav class="mobile-section-tabs" aria-label="移动端快速导航">
+            <a href="#basic-chart">基本盘</a>
+            <a href="#element-section">五行</a>
+            <a href="#cycle-section">大运</a>
+            <a href="#reading-section">解读</a>
+          </nav>
+
           <div class="meta-grid">
             <div><span>日期</span><strong id="meta-date">公历 1996-08-18 23:30</strong></div>
             <div><span>用于排盘</span><strong id="meta-used-solar">公历 1996-08-18 23:30</strong></div>
@@ -170,7 +177,7 @@
           </div>
 
           <p class="chart-scroll-hint">左右滑动查看完整命盘</p>
-          <div class="pro-chart" aria-label="专业细盘" tabindex="0">
+          <div class="pro-chart" id="basic-chart" aria-label="专业细盘" tabindex="0">
             <div class="pro-chart__row pro-chart__head">
               <span>日期</span><span>流年</span><span>大运</span><span>年柱</span><span>月柱</span><span>日柱</span><span>时柱</span>
             </div>
@@ -209,7 +216,9 @@
             </div>
           </div>
 
-          <div class="elements">
+          <div class="mobile-pillar-cards" id="mobile-pillar-cards" aria-label="手机端四柱命盘"></div>
+
+          <div class="elements" id="element-section">
             <div class="element-legend" aria-label="五行颜色说明">
               <span class="element-label element-wood">木</span>
               <span class="element-label element-fire">火</span>
@@ -224,7 +233,7 @@
             <div><span>水</span><i id="water-bar" style="--value: 66%"></i></div>
           </div>
 
-          <section class="cycle-section" aria-label="大运流年流月">
+          <section class="cycle-section" id="cycle-section" aria-label="大运流年流月">
             <div class="cycle-controls">
               <div>
                 <strong id="selected-luck-status">当前查看：当前大运</strong>
@@ -252,7 +261,7 @@
             </div>
           </section>
 
-          <div class="analysis-grid">
+          <div class="analysis-grid" id="reading-section">
             <article>
               <span>干支生克</span>
               <strong id="relation-title">水火既济，金水相生</strong>
@@ -279,6 +288,14 @@
               <p id="strength-copy">系统会结合月令、根气、印比、生克泄耗和五行分布判断日主强弱。</p>
             </article>
           </div>
+
+          <section class="term-tips" id="term-tips" aria-label="术语说明">
+            <div class="section-title">
+              <span>术语说明</span>
+              <small>点一下神煞标签，也可以看白话提示</small>
+            </div>
+            <div class="term-tip-list" id="term-tip-list"></div>
+          </section>
 
             <div class="report-copy">
               <h3 id="summary-heading">排盘总览</h3>
@@ -321,6 +338,6 @@
     </section>
 
     <script src="lunar.js?v=20260524"></script>
-    <script src="script.js?v=20260527-ux1"></script>
+    <script src="script.js?v=20260527-polish1"></script>
   </body>
 </html>
