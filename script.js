@@ -101,6 +101,23 @@ function renderGanZhi(pillar) {
   return `<span class="gz-pair">${renderGanZhiPart(stem, "stem")}${renderGanZhiPart(branch, "branch")}</span>`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderShaChips(value) {
+  const items = String(value || "参考")
+    .split(/[、·\s]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return [...new Set(items)].map((item) => `<span class="sha-chip">${escapeHtml(item)}</span>`).join("");
+}
+
 function parseDateParts(dateValue) {
   const [year = "1996", month = "08", day = "18"] = (dateValue || "1996-08-18").split("-");
   return {
@@ -530,7 +547,7 @@ function briefShenSha(chart, label, pillar) {
   const texts = getShenSha(chart, [{ label, pillar }])
     .filter((text) => text.includes(`在${label}${pillar}`))
     .map((text) => text.split("在")[0]);
-  return texts.length ? texts.slice(0, 2).join("、") : "参考";
+  return texts.length ? [...new Set(texts)].join("、") : "参考";
 }
 
 function analyzeStrength(chart) {
@@ -773,9 +790,10 @@ function updateProfessionalRows(chart, selectedYear, selectedDaYun) {
       ? chart.xunKong[index - 2]
       : (key === "luck" ? viewedLuck.xunKong : window.LunarUtil.getXunKong(allPillars[index]));
     document.querySelector(`#nayin-${key}`).textContent = index >= 2 ? chart.nayin[index - 2] : getNaYinForPillar(allPillars[index]);
-    document.querySelector(`#sha-${key}`).textContent = index >= 2
+    const shaText = index >= 2
       ? briefShenSha(chart, ["年柱", "月柱", "日柱", "时柱"][index - 2], allPillars[index])
       : briefShenSha(chart, key === "flow" ? "流年" : "大运", allPillars[index]);
+    document.querySelector(`#sha-${key}`).innerHTML = renderShaChips(shaText);
   });
 }
 function getActiveLuck(chart, currentAge) {

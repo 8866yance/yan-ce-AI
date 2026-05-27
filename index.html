@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>玄核 Bazi AI | AI 八字命理分析</title>
-    <link rel="stylesheet" href="styles.css?v=20260527-ui1" />
+    <link rel="stylesheet" href="styles.css?v=20260527-table1" />
   </head>
   <body>
     <main class="shell">
@@ -162,14 +162,15 @@
             <span class="element-water">水</span>
           </div>
 
-          <div class="chart-card">
+          <div class="chart-card chart-card--summary" hidden>
             <div><span>年柱</span><strong id="year-pillar">丙子</strong></div>
             <div><span>月柱</span><strong id="month-pillar">丙申</strong></div>
             <div><span>日柱</span><strong id="day-pillar">丁亥</strong></div>
             <div><span>时柱</span><strong id="hour-pillar">庚子</strong></div>
           </div>
 
-          <div class="pro-chart" aria-label="专业细盘">
+          <p class="chart-scroll-hint">左右滑动查看完整命盘</p>
+          <div class="pro-chart" aria-label="专业细盘" tabindex="0">
             <div class="pro-chart__row pro-chart__head">
               <span>日期</span><span>流年</span><span>大运</span><span>年柱</span><span>月柱</span><span>日柱</span><span>时柱</span>
             </div>

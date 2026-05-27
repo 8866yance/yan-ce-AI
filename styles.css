@@ -1363,3 +1363,251 @@ body.modal-open {
     grid-template-columns: 1fr;
   }
 }
+
+/* 2026-05-27: chart readability and mobile layout refinement */
+.workspace,
+.workspace > .panel,
+.report-panel {
+  min-width: 0;
+}
+
+.report-panel {
+  overflow: hidden;
+}
+
+.chart-card--summary {
+  display: none !important;
+}
+
+.chart-scroll-hint {
+  display: none;
+  margin: -4px 0 10px;
+  color: rgba(216, 181, 106, 0.78);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.pro-chart {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  border-color: rgba(216, 181, 106, 0.26);
+  background:
+    linear-gradient(90deg, rgba(216, 181, 106, 0.2), rgba(89, 216, 192, 0.18)),
+    rgba(68, 244, 255, 0.1);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(216, 181, 106, 0.72) rgba(255, 255, 255, 0.08);
+}
+
+.pro-chart::-webkit-scrollbar,
+.cycle-track::-webkit-scrollbar {
+  height: 9px;
+}
+
+.pro-chart::-webkit-scrollbar-track,
+.cycle-track::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.pro-chart::-webkit-scrollbar-thumb,
+.cycle-track::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(89, 216, 192, 0.8), rgba(216, 181, 106, 0.82));
+}
+
+.pro-chart__row {
+  width: 100%;
+  min-width: 760px;
+  grid-template-columns: 68px repeat(6, minmax(92px, 1fr));
+}
+
+.pro-chart__row span,
+.pro-chart__row strong {
+  height: auto;
+  min-height: 48px;
+  overflow: visible;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.pro-chart__head span {
+  min-height: 42px;
+}
+
+.pro-chart__big strong {
+  min-height: 70px;
+}
+
+.pro-chart__stack strong,
+.pro-chart__sha strong {
+  min-height: 78px;
+  align-content: center;
+}
+
+.pro-chart__stack strong {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.pro-chart__sha strong {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px;
+}
+
+.sha-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  min-height: 24px;
+  padding: 3px 7px;
+  border: 1px solid rgba(216, 181, 106, 0.34);
+  border-radius: 999px;
+  background: rgba(216, 181, 106, 0.1);
+  color: #f0db9d;
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.cycle-track {
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 1040px) {
+  .workspace {
+    grid-template-columns: minmax(320px, 0.72fr) minmax(0, 1.28fr);
+  }
+}
+
+@media (max-width: 860px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .shell {
+    width: min(100% - 20px, 1180px);
+  }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+    padding: 18px 0;
+  }
+
+  .form-panel,
+  .report-panel {
+    width: 100%;
+  }
+
+  .panel__header {
+    grid-template-columns: 1fr;
+  }
+
+  .panel__header .panel__actions,
+  .panel__header > .mini-button {
+    grid-column: 1;
+    grid-row: auto;
+    justify-content: flex-start;
+  }
+
+  input,
+  select,
+  .button,
+  .form-recharge-button {
+    width: 100%;
+  }
+
+  .chart-scroll-hint {
+    display: block;
+  }
+
+  .meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pro-chart {
+    margin-inline: 0;
+  }
+
+  .pro-chart__row {
+    min-width: 760px;
+    grid-template-columns: 64px repeat(6, 112px);
+  }
+
+  .cycle-block {
+    grid-template-columns: 1fr;
+  }
+
+  .cycle-label {
+    min-height: 36px;
+    writing-mode: horizontal-tb;
+    font-size: 0.92rem;
+  }
+
+  .cycle-track {
+    grid-auto-columns: minmax(112px, 136px);
+  }
+
+  .cycle-card {
+    min-height: 108px;
+  }
+
+  .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .shell {
+    width: min(100% - 14px, 1180px);
+  }
+
+  .panel,
+  .insight-strip article {
+    padding: 16px;
+  }
+
+  .date-selects select {
+    flex: 1 1 calc(50% - 8px);
+  }
+
+  #birth-year {
+    flex-basis: 100%;
+  }
+
+  .pro-chart__row {
+    min-width: 720px;
+    grid-template-columns: 58px repeat(6, 108px);
+  }
+
+  .pro-chart__row span,
+  .pro-chart__row strong {
+    padding: 7px 5px;
+    font-size: 0.82rem;
+  }
+
+  .pro-chart__big strong {
+    font-size: 1.45rem;
+  }
+
+  .sha-chip {
+    font-size: 0.68rem;
+    padding: 3px 6px;
+  }
+}
