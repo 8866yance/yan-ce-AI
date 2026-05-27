@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>玄核 Bazi AI | AI 八字命理分析</title>
-    <link rel="stylesheet" href="styles.css?v=20260527-polish1" />
+    <link rel="stylesheet" href="styles.css?v=20260527-pay1" />
   </head>
   <body>
     <main class="shell">
@@ -26,7 +26,7 @@
           <p class="lede">根据出生日期、时间和中国境内出生地生成专业细盘，再由 AI 做结构化解读。</p>
           <div class="hero__actions">
             <a class="button button--primary" href="#analyzer">开始排盘</a>
-            <button class="button button--gold" id="open-recharge" type="button">充值 / 开通会员</button>
+            <a class="button button--gold" href="#analyzer">9.99 元生成一次</a>
             <a class="button button--ghost" href="#birthplace">查看规则</a>
           </div>
         </div>
@@ -53,7 +53,11 @@
             <p class="eyebrow">Input Console</p>
             <h2>生成你的八字排盘</h2>
           </div>
-          <button class="mini-button mini-button--gold form-recharge-button" id="open-recharge-inline" type="button">充值 / 开通会员</button>
+          <div class="single-pay-note">
+            <span>单次生成</span>
+            <strong>9.99 元</strong>
+            <small>包含四柱、五行、大运流年、神煞提示与白话解读。</small>
+          </div>
 
           <label>
             <span>性别</span>
@@ -133,7 +137,23 @@
             <span>真太阳时提示</span>
           </label>
 
-          <button class="button button--primary" type="submit">生成详细排盘</button>
+          <button class="button button--primary" type="submit">9.99 元生成一次</button>
+
+          <section class="side-hints" aria-label="术语说明">
+            <div class="section-title">
+              <span>术语说明</span>
+              <small>快速看懂命盘关键词</small>
+            </div>
+            <div class="term-tip-list" id="term-tip-list"></div>
+            <div class="hint-grid">
+              <span><b>干支</b>时间能量符号。</span>
+              <span><b>十神</b>人与事的关系。</span>
+              <span><b>神煞</b>辅助参考标签。</span>
+              <span><b>空亡</b>易有落空感。</span>
+              <span><b>纳音</b>干支组合象意。</span>
+              <span><b>五行</b>生克制化流动。</span>
+            </div>
+          </section>
         </form>
 
         <aside class="panel report-panel" aria-live="polite">
@@ -289,14 +309,6 @@
             </article>
           </div>
 
-          <section class="term-tips" id="term-tips" aria-label="术语说明">
-            <div class="section-title">
-              <span>术语说明</span>
-              <small>点一下神煞标签，也可以看白话提示</small>
-            </div>
-            <div class="term-tip-list" id="term-tip-list"></div>
-          </section>
-
             <div class="report-copy">
               <h3 id="summary-heading">排盘总览</h3>
               <p id="summary">系统已根据出生信息生成专业细盘，后续 AI 会基于结构化排盘输出更详细的命理解读。</p>
@@ -316,28 +328,26 @@
       </section>
     </main>
 
-    <section class="recharge-modal" id="recharge-modal" hidden aria-labelledby="recharge-title" role="dialog">
-      <div class="recharge-modal__backdrop" data-close-recharge></div>
+    <section class="recharge-modal pay-modal" id="payment-modal" hidden aria-labelledby="payment-title" role="dialog">
+      <div class="recharge-modal__backdrop" data-close-payment></div>
       <div class="recharge-modal__panel">
-        <button class="modal-close" type="button" data-close-recharge>×</button>
-        <p class="eyebrow">Account Energy</p>
-        <h2 id="recharge-title">充值 / 开通会员</h2>
-        <p class="modal-note">套餐和积分包从后端读取。真实支付接入前，可先作为创建订单与客服确认入口。</p>
-        <div class="recharge-grid">
-          <article>
-            <h3>会员套餐</h3>
-            <div id="membership-options" class="shop-list"></div>
-          </article>
-          <article>
-            <h3>积分充值</h3>
-            <div id="point-options" class="shop-list"></div>
-          </article>
+        <button class="modal-close" type="button" data-close-payment>×</button>
+        <p class="eyebrow">Single Reading</p>
+        <h2 id="payment-title">生成详细排盘</h2>
+        <p class="modal-note">本次详细命盘解读需支付 9.99 元，包含四柱排盘、五行分析、大运流年、神煞提示与白话解读。</p>
+        <div class="pay-summary">
+          <span>单次生成</span>
+          <strong>¥9.99</strong>
+          <small>真实支付接口接入前，当前按钮先作为前端占位确认。</small>
         </div>
-        <p id="recharge-message" class="modal-message">选择套餐后，系统会提示后续支付接入方式。</p>
+        <div class="pay-actions">
+          <button class="button button--primary" id="confirm-paid-generate" type="button">9.99 元生成一次</button>
+          <button class="button button--ghost" type="button" data-close-payment>暂不生成</button>
+        </div>
       </div>
     </section>
 
     <script src="lunar.js?v=20260524"></script>
-    <script src="script.js?v=20260527-polish1"></script>
+    <script src="script.js?v=20260527-pay1"></script>
   </body>
 </html>

@@ -85,7 +85,7 @@ const termDescriptions = {
 let chinaPlaces = [];
 let currentSelection = { luck: null, year: null, month: null };
 let baziState = null;
-let rechargeLoaded = false;
+let pendingPaidSubmit = false;
 
 const fallbackPlaces = [
   {
@@ -270,69 +270,14 @@ async function loadChinaAreas() {
   chinaPlaces = fallbackPlaces;
 }
 
-async function fetchShopItems(path) {
-  const response = await fetch(path, { cache: "no-store" });
-  if (!response.ok) throw new Error(`读取失败：${response.status}`);
-  const data = await response.json();
-  return data.items || data.plans || data.packages || [];
-}
-
-function renderMoney(value) {
-  return `¥${Number(value || 0).toFixed(2)}`;
-}
-
-function renderShopCard(item, type) {
-  const title = item.name || "未命名";
-  const price = renderMoney(item.price);
-  const desc = item.description || "后台可继续配置套餐说明。";
-  const extra = type === "membership"
-    ? `${item.durationDays || 0} 天 · ${item.unlimited ? "不限次数" : `${item.analysisLimit || 0} 次分析`}`
-    : `${item.points || 0} 积分${item.bonusPoints ? ` · 赠送 ${item.bonusPoints}` : ""}`;
-  return `
-    <button class="shop-card" type="button" data-shop-type="${type}" data-shop-name="${title}" data-shop-price="${price}">
-      <span>${title}</span>
-      <strong>${price}</strong>
-      <em>${extra}</em>
-      <small>${desc}</small>
-    </button>
-  `;
-}
-
-async function loadRechargeOptions() {
-  const planBox = document.querySelector("#membership-options");
-  const pointBox = document.querySelector("#point-options");
-  const message = document.querySelector("#recharge-message");
-  planBox.innerHTML = `<p class="shop-loading">正在读取会员套餐...</p>`;
-  pointBox.innerHTML = `<p class="shop-loading">正在读取积分包...</p>`;
-  try {
-    const [plans, packages] = await Promise.all([
-      fetchShopItems("/api/membership-plans"),
-      fetchShopItems("/api/point-packages")
-    ]);
-    planBox.innerHTML = plans.length
-      ? plans.filter((item) => item.enabled !== false).map((item) => renderShopCard(item, "membership")).join("")
-      : `<p class="shop-loading">暂无启用的会员套餐。</p>`;
-    pointBox.innerHTML = packages.length
-      ? packages.filter((item) => item.enabled !== false).map((item) => renderShopCard(item, "points")).join("")
-      : `<p class="shop-loading">暂无启用的积分包。</p>`;
-    message.textContent = "真实支付接入前，点击套餐会提示创建订单/联系客服占位信息。";
-    rechargeLoaded = true;
-  } catch (error) {
-    planBox.innerHTML = `<p class="shop-loading">会员套餐读取失败。</p>`;
-    pointBox.innerHTML = `<p class="shop-loading">积分包读取失败。</p>`;
-    message.textContent = "请确认后端 /api/membership-plans 和 /api/point-packages 正常。";
-  }
-}
-
-async function openRechargeModal() {
-  const modal = document.querySelector("#recharge-modal");
+function openPaymentModal() {
+  const modal = document.querySelector("#payment-modal");
   modal.hidden = false;
   document.body.classList.add("modal-open");
-  if (!rechargeLoaded) await loadRechargeOptions();
 }
 
-function closeRechargeModal() {
-  document.querySelector("#recharge-modal").hidden = true;
+function closePaymentModal() {
+  document.querySelector("#payment-modal").hidden = true;
   document.body.classList.remove("modal-open");
 }
 
@@ -867,8 +812,9 @@ function renderTermTips(chart, shenSha = []) {
   `).join("") || `<span class="term-pill"><b>术语说明</b>暂无详细说明。</span>`;
 }
 
-function getActiveLuck(chart, currentAge) {
-  return chart.daYun.find((item) => item.index > 0 && currentAge >= item.startAge && currentAge <= item.endAge)
+function getActiveLuck(chart, currentAge, currentYear = new Date().getFullYear()) {
+  return chart.daYun.find((item) => item.index > 0 && currentYear >= item.startYear && currentYear <= item.endYear)
+    || chart.daYun.find((item) => item.index > 0 && currentAge >= item.startAge && currentAge <= item.endAge)
     || chart.daYun.find((item) => item.index > 0);
 }
 
@@ -931,8 +877,8 @@ function renderCycleDetail(type, data, chart, currentYear, currentAge) {
   const detail = document.querySelector("#cycle-detail");
   const dayStem = chart.stems[2];
   const strength = analyzeStrength(chart);
-  const selectedLuck = baziState?.selectedDaYun || data.luck || getActiveLuck(chart, currentAge || 0);
   const selectedYear = baziState?.selectedLiuNian || data.year || currentYear;
+  const selectedLuck = baziState?.selectedDaYun || data.luck || getActiveLuck(chart, currentAge || 0, selectedYear);
 
   if (type === "luck") {
     const god = tenGod(dayStem, data.ganZhi.slice(0, 1));
@@ -1278,9 +1224,15 @@ function renderOverview({ chart, calendarType, dateValue, timeValue, birthDate, 
       <div><b>神煞和方位参考</b><br>${shenSha.slice(0, 3).join("<br>")}<br>${direction}</div>
     </div>`;
 }
-function updateReport(event) {
+function updateReport(event, options = {}) {
   event?.preventDefault?.();
-  const shouldScrollToResult = event?.type === "submit";
+  const isSubmit = event?.type === "submit";
+  if (isSubmit && !options.paidConfirmed) {
+    pendingPaidSubmit = true;
+    openPaymentModal();
+    return;
+  }
+  const shouldScrollToResult = isSubmit && options.paidConfirmed;
 
   try {
     updateTimeMode();
@@ -1305,12 +1257,12 @@ function updateReport(event) {
     const currentYear = today.getFullYear();
     const currentMonthIndex = mod(today.getMonth() - 1, 12);
     const chart = buildAccurateChart(birthDate, gender, ziDayMode);
-    chart.daYun.forEach((item) => { item.current = item.index > 0 && currentAge >= item.startAge && currentAge <= item.endAge; });
+    chart.daYun.forEach((item) => { item.current = item.index > 0 && currentYear >= item.startYear && currentYear <= item.endYear; });
     const pillars = chart.pillars;
     const dayStem = chart.stems[2];
     const strength = analyzeStrength(chart);
     const natalRelations = natalRelationSummary(chart);
-    const currentLuck = getActiveLuck(chart, currentAge);
+    const currentLuck = getActiveLuck(chart, currentAge, currentYear);
     const shenSha = getShenSha(chart, [
       currentLuck?.ganZhi ? { label: "大运", pillar: currentLuck.ganZhi } : null,
       { label: "流年", pillar: getFlowYearPillar(currentYear) }
@@ -1402,14 +1354,17 @@ document.querySelector("#consult-button").addEventListener("click", () => {
     : "请先输入你想咨询的具体方向，例如事业、财运、感情、流年或某个具体问题。";
 });
 
-document.querySelector("#open-recharge")?.addEventListener("click", openRechargeModal);
-document.querySelector("#open-recharge-inline")?.addEventListener("click", openRechargeModal);
-document.querySelector("#recharge-modal")?.addEventListener("click", (event) => {
-  if (event.target.matches("[data-close-recharge]")) closeRechargeModal();
-  const card = event.target.closest?.(".shop-card");
-  if (!card) return;
-  document.querySelector("#recharge-message").textContent =
-    `已选择 ${card.dataset.shopName}（${card.dataset.shopPrice}）。真实支付接入后，这里会创建订单并跳转支付；当前可先联系客服开通。`;
+document.querySelector("#payment-modal")?.addEventListener("click", (event) => {
+  if (event.target.matches("[data-close-payment]")) {
+    pendingPaidSubmit = false;
+    closePaymentModal();
+  }
+});
+
+document.querySelector("#confirm-paid-generate")?.addEventListener("click", () => {
+  pendingPaidSubmit = false;
+  closePaymentModal();
+  updateReport({ preventDefault() {}, type: "submit" }, { paidConfirmed: true });
 });
 
 document.querySelector("#birth-province").addEventListener("change", () => {

@@ -2196,3 +2196,129 @@ body {
     min-height: 104px;
   }
 }
+
+.single-pay-note {
+  display: grid;
+  gap: 5px;
+  padding: 14px 16px;
+  border: 1px solid rgba(215, 180, 106, 0.22);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(215, 180, 106, 0.16), rgba(125, 233, 223, 0.08)),
+    rgba(6, 18, 28, 0.74);
+  box-shadow: inset 0 0 22px rgba(215, 180, 106, 0.06);
+}
+
+.single-pay-note span,
+.pay-summary span {
+  color: #dfc380;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.single-pay-note strong,
+.pay-summary strong {
+  color: #fff6d7;
+  font-size: 1.55rem;
+  font-weight: 1000;
+  text-shadow: 0 0 18px rgba(215, 180, 106, 0.26);
+}
+
+.single-pay-note small,
+.pay-summary small {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.side-hints {
+  display: grid;
+  gap: 14px;
+  margin-top: 8px;
+  padding: 16px;
+  border: 1px solid rgba(125, 233, 223, 0.16);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top right, rgba(215, 180, 106, 0.12), transparent 42%),
+    rgba(5, 15, 24, 0.58);
+}
+
+.side-hints .section-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.side-hints .section-title span {
+  color: #f2dfaa;
+  font-size: 0.98rem;
+  font-weight: 1000;
+}
+
+.side-hints .section-title small {
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.hint-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.hint-grid span {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(125, 233, 223, 0.12);
+  border-radius: 10px;
+  background: rgba(4, 13, 22, 0.55);
+  color: #dcecea;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.hint-grid b {
+  display: block;
+  margin-bottom: 3px;
+  color: #84f4e7;
+}
+
+.pay-summary {
+  display: grid;
+  gap: 6px;
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid rgba(215, 180, 106, 0.22);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(12, 39, 55, 0.82), rgba(52, 25, 62, 0.62)),
+    rgba(5, 14, 22, 0.88);
+}
+
+.pay-actions {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 10px;
+}
+
+.pay-modal .recharge-modal__panel {
+  max-width: 520px;
+}
+
+.pay-modal .modal-note {
+  color: #cddbd9;
+  line-height: 1.75;
+}
+
+@media (max-width: 860px) {
+  .side-hints {
+    padding: 14px;
+  }
+
+  .hint-grid,
+  .pay-actions {
+    grid-template-columns: 1fr;
+  }
+}
