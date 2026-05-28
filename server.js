@@ -10,6 +10,7 @@ import { createUserOrder, processPaymentCallback, consumeAnalysisQuota, dashboar
 import { getClientIp, hmacSign, maskText, parsePagination, signAdmin, signUser } from "./utils.js";
 
 const app = express();
+const DEFAULT_SINGLE_READING_PROMPT = "你是专业、克制、白话的八字命理分析助手。只做参考建议，不恐吓，不绝对化。";
 
 app.use(helmet());
 app.use(cors({
@@ -60,6 +61,11 @@ async function generateSingleReading({ birthInfo, chartData, luckData, question 
     error.statusCode = 503;
     throw error;
   }
+  const activePrompt = await prisma.promptVersion.findFirst({
+    where: { status: "active" },
+    orderBy: { versionNo: "desc" }
+  });
+  const systemPrompt = activePrompt?.content?.trim() || DEFAULT_SINGLE_READING_PROMPT;
 
   const response = await fetch(`${ark.baseUrl}/chat/completions`, {
     method: "POST",
@@ -72,7 +78,7 @@ async function generateSingleReading({ birthInfo, chartData, luckData, question 
       messages: [
         {
           role: "system",
-          content: "你是专业、克制、白话的八字命理分析助手。只做参考建议，不恐吓，不绝对化。"
+          content: systemPrompt
         },
         {
           role: "user",
