@@ -85,7 +85,7 @@ const termDescriptions = {
 let chinaPlaces = [];
 let currentSelection = { luck: null, year: null, month: null };
 let baziState = null;
-let pendingPaidSubmit = false;
+let pendingSinglePayAction = null;
 
 const fallbackPlaces = [
   {
@@ -270,15 +270,37 @@ async function loadChinaAreas() {
   chinaPlaces = fallbackPlaces;
 }
 
-function openPaymentModal() {
+function openSinglePayModal(options = {}) {
   const modal = document.querySelector("#payment-modal");
+  const title = document.querySelector("#payment-title");
+  const note = modal.querySelector(".modal-note");
+  const actionButton = document.querySelector("#confirm-paid-generate");
+  pendingSinglePayAction = options.onSuccess || null;
+  if (title) title.textContent = options.title || "生成咨询方向解读";
+  if (note) {
+    note.textContent = options.description
+      || "本次解读需支付 9.99 元，包含命盘重点、五行强弱、大运流年、神煞提示与咨询方向建议。";
+  }
+  if (actionButton) actionButton.textContent = options.buttonText || "9.99 元立即解读";
   modal.hidden = false;
   document.body.classList.add("modal-open");
 }
 
-function closePaymentModal() {
+function closeSinglePayModal({ clearAction = true } = {}) {
   document.querySelector("#payment-modal").hidden = true;
   document.body.classList.remove("modal-open");
+  if (clearAction) pendingSinglePayAction = null;
+}
+
+function onPaymentSuccess(action) {
+  if (typeof action === "function") action();
+}
+
+function confirmSinglePay() {
+  const action = pendingSinglePayAction;
+  closeSinglePayModal({ clearAction: true });
+  // TODO: 接入真实支付后，在服务端回调确认成功后再调用 onPaymentSuccess。
+  onPaymentSuccess(action);
 }
 
 function updateCities() {
@@ -812,9 +834,12 @@ function renderTermTips(chart, shenSha = []) {
   `).join("") || `<span class="term-pill"><b>术语说明</b>暂无详细说明。</span>`;
 }
 
+function isLuckInYear(item, year) {
+  return item?.index > 0 && year >= item.startYear && year <= item.endYear;
+}
+
 function getActiveLuck(chart, currentAge, currentYear = new Date().getFullYear()) {
-  return chart.daYun.find((item) => item.index > 0 && currentYear >= item.startYear && currentYear <= item.endYear)
-    || chart.daYun.find((item) => item.index > 0 && currentAge >= item.startAge && currentAge <= item.endAge)
+  return chart.daYun.find((item) => isLuckInYear(item, currentYear))
     || chart.daYun.find((item) => item.index > 0);
 }
 
@@ -1046,7 +1071,7 @@ function renderCycles(currentAge, currentYear, chart, birthYear, autoRender = tr
   document.querySelector("#luck-track").innerHTML = chart.daYun
     .filter((item) => item.index > 0 && item.startAge <= 110)
     .map((item) => {
-      const isCurrent = item.index === currentLuckIndex;
+      const isCurrent = item.index === currentLuckIndex && isLuckInYear(item, baziState.currentLiuNian);
       const isSelected = item.index === selectedLuckIndex;
       const active = `${isCurrent ? " is-current is-active" : ""}${isSelected ? " is-selected" : ""}`;
       return `<button class="cycle-card${active}" type="button" data-cycle="luck" data-index="${item.index}"><span>第${item.index}步<br>${item.startYear}-${item.endYear}<br>${item.startAge}-${item.endAge}岁</span>${cycleBadges(isCurrent, isSelected, "当前大运")}<strong>${renderGanZhi(item.ganZhi)}</strong><em>${tenGod(dayStem, item.ganZhi.slice(0, 1))}</em></button>`;
@@ -1226,13 +1251,7 @@ function renderOverview({ chart, calendarType, dateValue, timeValue, birthDate, 
 }
 function updateReport(event, options = {}) {
   event?.preventDefault?.();
-  const isSubmit = event?.type === "submit";
-  if (isSubmit && !options.paidConfirmed) {
-    pendingPaidSubmit = true;
-    openPaymentModal();
-    return;
-  }
-  const shouldScrollToResult = isSubmit && options.paidConfirmed;
+  const shouldScrollToResult = event?.type === "submit" && options.scrollToResult !== false;
 
   try {
     updateTimeMode();
@@ -1257,7 +1276,7 @@ function updateReport(event, options = {}) {
     const currentYear = today.getFullYear();
     const currentMonthIndex = mod(today.getMonth() - 1, 12);
     const chart = buildAccurateChart(birthDate, gender, ziDayMode);
-    chart.daYun.forEach((item) => { item.current = item.index > 0 && currentYear >= item.startYear && currentYear <= item.endYear; });
+    chart.daYun.forEach((item) => { item.current = isLuckInYear(item, currentYear); });
     const pillars = chart.pillars;
     const dayStem = chart.stems[2];
     const strength = analyzeStrength(chart);
@@ -1349,22 +1368,28 @@ document.querySelector("#calendar-type").addEventListener("change", () => {
 document.querySelector("#consult-button").addEventListener("click", () => {
   const question = document.querySelector("#consult-direction").value.trim();
   const result = document.querySelector("#consult-result");
-  result.textContent = question
-    ? `咨询方向：${question}。后续接入 AI 后，会基于上方专业细盘、大运流年、神煞和五行结构生成专项解读。`
-    : "请先输入你想咨询的具体方向，例如事业、财运、感情、流年或某个具体问题。";
+  if (!question) {
+    result.textContent = "请先输入你想咨询的具体方向，例如事业、财运、感情、流年或某个具体问题。";
+    return;
+  }
+  openSinglePayModal({
+    title: "生成咨询方向解读",
+    description: "本次解读需支付 9.99 元，包含命盘重点、五行强弱、大运流年、神煞提示与咨询方向建议。",
+    buttonText: "9.99 元立即解读",
+    onSuccess: () => {
+      result.textContent = `咨询方向：${question}。当前已模拟单次支付完成，后续接入 AI 后，会基于上方专业细盘、大运流年、神煞和五行结构生成专项解读。`;
+    }
+  });
 });
 
 document.querySelector("#payment-modal")?.addEventListener("click", (event) => {
   if (event.target.matches("[data-close-payment]")) {
-    pendingPaidSubmit = false;
-    closePaymentModal();
+    closeSinglePayModal();
   }
 });
 
 document.querySelector("#confirm-paid-generate")?.addEventListener("click", () => {
-  pendingPaidSubmit = false;
-  closePaymentModal();
-  updateReport({ preventDefault() {}, type: "submit" }, { paidConfirmed: true });
+  confirmSinglePay();
 });
 
 document.querySelector("#birth-province").addEventListener("change", () => {
