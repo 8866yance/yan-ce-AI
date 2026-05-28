@@ -292,14 +292,77 @@ function closeSinglePayModal({ clearAction = true } = {}) {
   if (clearAction) pendingSinglePayAction = null;
 }
 
-function onPaymentSuccess(action) {
-  if (typeof action === "function") action();
+async function onPaymentSuccess(action) {
+  if (typeof action === "function") await action();
 }
 
-function confirmSinglePay() {
+async function confirmSinglePay() {
   const action = pendingSinglePayAction;
   closeSinglePayModal({ clearAction: true });
-  onPaymentSuccess(action);
+  await onPaymentSuccess(action);
+}
+
+function getGuestId() {
+  const key = "yan_ce_guest_id";
+  let guestId = localStorage.getItem(key);
+  if (!guestId) {
+    guestId = `guest_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    localStorage.setItem(key, guestId);
+  }
+  return guestId;
+}
+
+function buildSingleReadingPayload(question) {
+  const chart = baziState?.chart || {};
+  return {
+    guestId: getGuestId(),
+    question,
+    birthInfo: {
+      calendarType: baziState?.calendarType,
+      dateValue: baziState?.dateValue,
+      usedSolarDate: baziState?.birthDate ? formatDate(baziState.birthDate) : "",
+      timeValue: baziState?.timeValue,
+      gender: document.querySelector("#gender")?.value || "",
+      province: selectedText("#birth-province"),
+      city: selectedText("#birth-city"),
+      area: selectedText("#birth-area")
+    },
+    chartData: {
+      pillars: chart.pillars || [],
+      stems: chart.stems || [],
+      branches: chart.branches || [],
+      tenGods: chart.tenGods || [],
+      hiddenGan: chart.hiddenGan || [],
+      hiddenGods: chart.hiddenGods || [],
+      stages: chart.stages || [],
+      xunKong: chart.xunKong || [],
+      nayin: chart.nayin || [],
+      strength: baziState?.strength || null,
+      shenSha: baziState?.shenSha || []
+    },
+    luckData: {
+      currentDaYun: baziState?.currentDaYun || null,
+      selectedDaYun: baziState?.selectedDaYun || null,
+      currentLiuNian: baziState?.currentLiuNian || new Date().getFullYear(),
+      selectedLiuNian: baziState?.selectedLiuNian || new Date().getFullYear(),
+      currentLiuYue: baziState?.currentLiuYue ?? null,
+      selectedLiuYue: baziState?.selectedLiuYue ?? null,
+      selectedMonth: baziState?.selectedLiuNian
+        ? buildFlowMonths(baziState.selectedLiuNian)[baziState.selectedLiuYue]
+        : null
+    }
+  };
+}
+
+async function requestSingleReading(question) {
+  const response = await fetch("/api/analysis/single-reading", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(buildSingleReadingPayload(question))
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data?.result) throw new Error(data?.message || "AI_GENERATION_FAILED");
+  return data.result;
 }
 
 function updateCities() {
@@ -1370,8 +1433,14 @@ document.querySelector("#consult-button").addEventListener("click", () => {
     title: "生成咨询方向解读",
     description: "本次解读将围绕你输入的具体问题，结合命盘结构、大运流年和五行关系，生成一份专项分析建议。",
     buttonText: "9.99 元立即解读",
-    onSuccess: () => {
-      result.textContent = `咨询方向：${question}。专项解读将结合命盘结构、大运流年和五行关系展开。`;
+    onSuccess: async () => {
+      result.textContent = "正在生成专项解读，请稍候...";
+      try {
+        result.textContent = await requestSingleReading(question);
+      } catch (error) {
+        console.warn("single reading failed", error);
+        result.textContent = "AI 解读生成失败，请稍后再试。";
+      }
     }
   });
 });
@@ -1383,7 +1452,11 @@ document.querySelector("#payment-modal")?.addEventListener("click", (event) => {
 });
 
 document.querySelector("#confirm-paid-generate")?.addEventListener("click", () => {
-  confirmSinglePay();
+  confirmSinglePay().catch((error) => {
+    console.warn("payment confirmation failed", error);
+    const result = document.querySelector("#consult-result");
+    if (result) result.textContent = "AI 解读生成失败，请稍后再试。";
+  });
 });
 
 document.querySelector("#birth-province").addEventListener("change", () => {
