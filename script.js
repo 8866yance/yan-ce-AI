@@ -279,7 +279,7 @@ function openSinglePayModal(options = {}) {
   if (title) title.textContent = options.title || "生成咨询方向解读";
   if (note) {
     note.textContent = options.description
-      || "本次解读需支付 9.99 元，包含命盘重点、五行强弱、大运流年、神煞提示与咨询方向建议。";
+      || "本次解读将围绕你输入的具体问题，结合命盘结构、大运流年和五行关系，生成一份专项分析建议。";
   }
   if (actionButton) actionButton.textContent = options.buttonText || "9.99 元立即解读";
   modal.hidden = false;
@@ -299,7 +299,6 @@ function onPaymentSuccess(action) {
 function confirmSinglePay() {
   const action = pendingSinglePayAction;
   closeSinglePayModal({ clearAction: true });
-  // TODO: 接入真实支付后，在服务端回调确认成功后再调用 onPaymentSuccess。
   onPaymentSuccess(action);
 }
 
@@ -914,9 +913,8 @@ function renderCycleDetail(type, data, chart, currentYear, currentAge) {
       { label: "大运总评", content: `此步大运天干为${god}，主题偏向${godMeaning(god)}。${advice.overall}` },
       { label: "与原局关系", content: `${relationListText(relations.stems, 2)}<br>${relationListText(relations.branches, 3)}` },
       { label: "喜忌判断", content: strength.type.includes("弱") ? "日主偏弱时，能生扶日主的大运更容易成为助力；克泄耗过重时压力会增加。" : "日主不弱时，更重视大运是否让五行流通、责任和表达是否平衡。" },
-      { label: "事业财运", content: `事业：${advice.career}<br>财运：${advice.wealth}` },
-      { label: "感情人际", content: `感情：${advice.love}<br>人际：${advice.network}` },
-      { label: "健康注意", content: advice.health },
+      { label: "事项倾向", content: `事业/财运：${godMeaning(god)}相关主题较明显，具体决策可在专项解读中展开。` },
+      { label: "互动提示", content: "关系、人际和健康类内容仅作基础提示，具体问题建议在下方输入后生成专项解读。" },
       { label: "重点流年", content: focusYearsInLuck(data, chart) },
       { label: "神煞参考", content: `${sha}<br>神煞只是辅助参考，不单独定吉凶。` }
     ]);
@@ -937,13 +935,9 @@ function renderCycleDetail(type, data, chart, currentYear, currentAge) {
     detail.innerHTML = renderDetailHtml(`当前查看流年：${data.year}年 ${renderGanZhi(pillar)}（结合${activeLuck?.ganZhi || "待定"}大运）`, [
       { label: "流年总评", content: `流年天干为${god}，评分参考：${scoreTrend(relations, god, strength.type)}。${advice.overall}` },
       { label: "与命局和大运", content: `${relationListText(relations.stems, 2)}<br>${relationListText(relations.branches, 3)}` },
-      { label: "事业", content: advice.career },
-      { label: "财运", content: advice.wealth },
-      { label: "感情", content: advice.love },
-      { label: "人际", content: advice.network },
-      { label: "健康", content: advice.health },
-      { label: "注意月份", content: monthRiskText(data.year, chart, pillar) },
-      { label: "方位参考", content: directionAdvice(chart, strength) },
+      { label: "基础倾向", content: `流年十神为${god}，只作年度主题提示，专项建议需结合你的具体问题生成。` },
+      { label: "关系提示", content: `可重点观察这些月份：${monthRiskText(data.year, chart, pillar)}。` },
+      { label: "方位基础", content: directionAdvice(chart, strength) },
       { label: "神煞参考", content: `${sha}<br>神煞只作参考，仍以命局和岁运作用为主。` }
     ]);
     document.querySelector("#luck-cycle").innerHTML = `当前查看流年：${data.year}年 ${renderGanZhi(pillar)}`;
@@ -964,8 +958,8 @@ function renderCycleDetail(type, data, chart, currentYear, currentAge) {
     detail.innerHTML = renderDetailHtml(`当前查看流月：${data.label} ${renderGanZhi(data.pillar)}（${selectedYear}年，结合${activeLuck?.ganZhi || "待定"}大运）`, [
       { label: "流月总评", content: `流月天干为${god}。${advice.overall}` },
       { label: "流月关系", content: `${relationListText(relations.stems, 2)}<br>${relationListText(relations.branches, 3)}` },
-      { label: "适合做什么", content: advice.career },
-      { label: "本月注意", content: `${advice.network}<br>${advice.health}` },
+      { label: "基础倾向", content: `流月天干为${god}，代表${godMeaning(god)}相关主题被看见。` },
+      { label: "关系提示", content: "本月只展示基础关系，具体行动建议请在咨询方向中生成专项解读。" },
       { label: "神煞参考", content: `${sha}<br>神煞只作参考，不单独定吉凶。` }
     ]);
     document.querySelector("#luck-cycle").innerHTML = `当前查看流月：${renderGanZhi(data.pillar)}`;
@@ -1374,10 +1368,10 @@ document.querySelector("#consult-button").addEventListener("click", () => {
   }
   openSinglePayModal({
     title: "生成咨询方向解读",
-    description: "本次解读需支付 9.99 元，包含命盘重点、五行强弱、大运流年、神煞提示与咨询方向建议。",
+    description: "本次解读将围绕你输入的具体问题，结合命盘结构、大运流年和五行关系，生成一份专项分析建议。",
     buttonText: "9.99 元立即解读",
     onSuccess: () => {
-      result.textContent = `咨询方向：${question}。当前已模拟单次支付完成，后续接入 AI 后，会基于上方专业细盘、大运流年、神煞和五行结构生成专项解读。`;
+      result.textContent = `咨询方向：${question}。专项解读将结合命盘结构、大运流年和五行关系展开。`;
     }
   });
 });
