@@ -86,6 +86,10 @@ let chinaPlaces = [];
 let currentSelection = { luck: null, year: null, month: null };
 let baziState = null;
 let pendingSinglePayAction = null;
+let currentSingleReading = null;
+let paidOrderNo = null;
+let singleReadingText = "";
+let singleReadingQuestion = "";
 
 const fallbackPlaces = [
   {
@@ -300,6 +304,25 @@ async function confirmSinglePay() {
   const action = pendingSinglePayAction;
   closeSinglePayModal({ clearAction: true });
   await onPaymentSuccess(action);
+}
+
+function clearSingleReadingState({ clearQuestion = true } = {}) {
+  currentSingleReading = null;
+  paidOrderNo = null;
+  singleReadingText = "";
+  singleReadingQuestion = "";
+  pendingSinglePayAction = null;
+
+  const result = document.querySelector("#consult-result");
+  if (result) result.textContent = "";
+
+  if (clearQuestion) {
+    const input = document.querySelector("#consult-direction");
+    if (input) input.value = "";
+  }
+
+  const modal = document.querySelector("#payment-modal");
+  if (modal && !modal.hidden) closeSinglePayModal({ clearAction: true });
 }
 
 function getGuestId() {
@@ -1309,6 +1332,7 @@ function renderOverview({ chart, calendarType, dateValue, timeValue, birthDate, 
 function updateReport(event, options = {}) {
   event?.preventDefault?.();
   const shouldScrollToResult = event?.type === "submit" && options.scrollToResult !== false;
+  clearSingleReadingState({ clearQuestion: true });
 
   try {
     updateTimeMode();
@@ -1425,6 +1449,10 @@ document.querySelector("#calendar-type").addEventListener("change", () => {
 document.querySelector("#consult-button").addEventListener("click", () => {
   const question = document.querySelector("#consult-direction").value.trim();
   const result = document.querySelector("#consult-result");
+  currentSingleReading = null;
+  paidOrderNo = null;
+  singleReadingText = "";
+  singleReadingQuestion = question;
   if (!question) {
     result.textContent = "请先输入你想咨询的具体方向，例如事业、财运、感情、流年或某个具体问题。";
     return;
@@ -1436,9 +1464,17 @@ document.querySelector("#consult-button").addEventListener("click", () => {
     onSuccess: async () => {
       result.textContent = "正在生成专项解读，请稍候...";
       try {
-        result.textContent = await requestSingleReading(question);
+        singleReadingText = await requestSingleReading(question);
+        currentSingleReading = {
+          question,
+          result: singleReadingText,
+          createdAt: new Date().toISOString()
+        };
+        result.textContent = singleReadingText;
       } catch (error) {
         console.warn("single reading failed", error);
+        currentSingleReading = null;
+        singleReadingText = "";
         result.textContent = "AI 解读生成失败，请稍后再试。";
       }
     }
